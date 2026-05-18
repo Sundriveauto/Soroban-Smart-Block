@@ -1,0 +1,26 @@
+# stellar.toml — Soroban Smart Block Explorer
+# https://stellar.org/protocol/sep-1
+
+VERSION = "2.0.0"
+
+NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+
+[DOCUMENTATION]
+ORG_NAME        = "Soroban Smart Block Explorer"
+ORG_GITHUB      = "https://github.com/your-org/Soroban-Smart-Block"
+ORG_DESCRIPTION = "Human-readable Soroban contract event explorer for Stellar."
+ORG_OFFICIAL    = false
+
+[[PRINCIPALS]]
+name  = "Project Maintainer"
+email = "maintainer@example.com"
+github = "your-github-handle"
+
+# ── Soroban Contracts ─────────────────────────────────────────────────────────
+[[CONTRACTS]]
+name        = "ExplorerContract"
+description = "ABI-like contract registry and on-chain decoded event store."
+# Fill in after deploying to testnet:
+contract_id = ""
+network     = "testnet"
+source_url  = "https://github.com/your-org/Soroban-Smart-Block/tree/main/contracts/explorer"

@@ -1,0 +1,17 @@
+# Rust
+target/
+*.wasm
+
+# Node
+node_modules/
+indexer/node_modules/
+frontend/node_modules/
+
+# Frontend build
+frontend/dist/
+
+# Env
+.env
+
+# OS
+.DS_Store
