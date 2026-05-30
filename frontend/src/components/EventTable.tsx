@@ -1,5 +1,14 @@
 import { Link } from "react-router-dom";
 import type { DecodedEvent } from "../api";
+import FiatValue from "./FiatValue";
+
+/** Parse amount and symbol from a transfer description like "Address GA… transferred 50.00 PYUSD to …" */
+function parseTransfer(description: string): { amount: number; symbol: string } | null {
+  const m = description.match(/transferred\s+([\d,.]+)\s+([A-Z]{2,10})/i);
+  if (!m) return null;
+  const amount = parseFloat(m[1].replace(/,/g, ""));
+  return isNaN(amount) ? null : { amount, symbol: m[2].toUpperCase() };
+}
 
 interface Props {
   events: DecodedEvent[];
@@ -56,6 +65,10 @@ export default function EventTable({ events }: Props) {
                   </span>
                 )}
                 {ev.description}
+                {ev.function === "transfer" && (() => {
+                  const t = parseTransfer(ev.description);
+                  return t ? <FiatValue amount={t.amount} symbol={t.symbol} /> : null;
+                })()}
               </td>
             </tr>
           ))}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
+import type { BurnAlert } from "../api";
 import EventTable from "../components/EventTable";
 import RustCodeViewer from "../components/RustCodeViewer";
 import MigrationBanner from "../components/MigrationBanner";
@@ -139,6 +140,21 @@ export default function ContractPage() {
       {/* Tab: Overview */}
       {tab === "overview" && (
         <>
+          {burnAlerts.length > 0 && (
+            <div className="card" style={{ borderLeft: "4px solid #f59e0b", background: "rgba(245,158,11,0.08)", padding: "12px 16px" }}>
+              <strong style={{ color: "#f59e0b" }}>⚠ Suspicious Burn Activity Detected</strong>
+              <p style={{ color: "var(--muted)", margin: "6px 0 0", fontSize: 13 }}>
+                Atypical supply contraction patterns were flagged for this token. The following ledgers show unusually high burn volumes:
+              </p>
+              <ul style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 13 }}>
+                {burnAlerts.map((a: BurnAlert) => (
+                  <li key={`${a.ledger}-${a.burnedPct}`} style={{ marginBottom: 4 }}>
+                    Ledger <strong>{a.ledger.toLocaleString()}</strong> — {a.burnedPct.toFixed(2)}% of estimated supply burned ({a.burnedAmount} raw units)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {meta.functions.length > 0 && (
             <div className="card">
               <h3 style={{ marginBottom: 8, fontSize: 14 }}>Functions</h3>

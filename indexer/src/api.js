@@ -252,6 +252,15 @@ export function startApi() {
     } catch (e) { res.status(400).json({ error: e.message }); }
   });
 
+  // ── GET /api/burn-alerts?contract= — suspicious burn sequence alerts ────────
+  // Returns alerts flagged by burnDetector for rapid supply contraction.
+  app.get("/api/burn-alerts", (req, res) => {
+    try {
+      const alerts = getBurnAlerts(req.query.contract || undefined);
+      res.json(alerts);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ── Start HTTP + WebSocket server ───────────────────────────────────────────
   const server = http.createServer(app);
   attachWebSocketServer(server);                // Issue #39

@@ -3,6 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import ResourceCosts from "../components/ResourceCosts";
 import StorageTierBreakdown from "../components/StorageTierBreakdown";
+import FiatValue from "../components/FiatValue";
+
+/** Parse amount and symbol from a transfer description. */
+function parseTransfer(description: string): { amount: number; symbol: string } | null {
+  const m = description.match(/transferred\s+([\d,.]+)\s+([A-Z]{2,10})/i);
+  if (!m) return null;
+  const amount = parseFloat(m[1].replace(/,/g, ""));
+  return isNaN(amount) ? null : { amount, symbol: m[2].toUpperCase() };
+}
 
 export default function EventPage() {
   const { seq = "0" } = useParams();

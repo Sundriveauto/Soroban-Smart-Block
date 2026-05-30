@@ -56,6 +56,14 @@ export interface ContractMeta {
   source_files?: SourceFile[];
 }
 
+export interface BurnAlert {
+  contractId: string;
+  ledger: number;
+  burnedPct: number;
+  burnedAmount: string;
+  flaggedAt: number;
+}
+
 // Issue #38: paginated contract transaction response
 export interface ContractTransactionsResponse {
   data: DecodedEvent[];
