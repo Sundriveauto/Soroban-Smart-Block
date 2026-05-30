@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import ResourceCosts from "../components/ResourceCosts";
 import StorageTierBreakdown from "../components/StorageTierBreakdown";
+import FeeSponsorBanner from "../components/FeeSponsorBanner";
 
 export default function EventPage() {
   const { seq = "0" } = useParams();
@@ -29,6 +30,9 @@ export default function EventPage() {
           <Row label="Topics" value={ev.raw_topics.join(", ")} mono />
         )}
       </div>
+
+      {/* Fee-Bump sponsorship banner */}
+      {ev.fee_bump && <FeeSponsorBanner feeBump={ev.fee_bump} />}
 
       {/* Issue #40 — Resource Consumption breakdown */}
       <ResourceCosts event={ev} />

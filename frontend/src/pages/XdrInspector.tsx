@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { xdr } from "@stellar/stellar-sdk";
+import { xdr, StrKey } from "@stellar/stellar-sdk";
 
 type TreeNode = string | { [key: string]: TreeNode } | TreeNode[];
 
@@ -45,6 +45,17 @@ function scValToTree(val: xdr.ScVal): TreeNode {
   }
 }
 
+function muxedToGAddress(ma: xdr.MuxedAccount): string {
+  try {
+    if (ma.switch() === xdr.CryptoKeyType.keyTypeMuxedEd25519()) {
+      return StrKey.encodeEd25519PublicKey(ma.med25519().ed25519());
+    }
+    return StrKey.encodeEd25519PublicKey(ma.ed25519());
+  } catch {
+    return "unknown";
+  }
+}
+
 function tryDecode(b64: string): { tree: TreeNode; label: string } | { error: string } {
   const trimmed = b64.trim();
   if (!trimmed) return { error: "Paste a Base64 XDR string above." };
@@ -54,6 +65,42 @@ function tryDecode(b64: string): { tree: TreeNode; label: string } | { error: st
       label: "TransactionEnvelope",
       fn: () => {
         const env = xdr.TransactionEnvelope.fromXDR(trimmed, "base64");
+
+        // Fee-Bump envelope: extract sponsor and inner transaction details.
+        if (env.switch() === xdr.EnvelopeType.envelopeTypeTxFeeBump()) {
+          const fbTx = env.feeBump().tx();
+          const sponsor = muxedToGAddress(fbTx.feeSource());
+          const innerTx = fbTx.innerTx().v1().tx();
+          const inner_source = muxedToGAddress(innerTx.sourceAccount());
+          const ops = innerTx.operations() ?? [];
+          return {
+            type: "FeeBumpTransactionEnvelope",
+            fee_sponsorship: {
+              "Paid by Sponsor": sponsor,
+              "on behalf of Caller": inner_source,
+            },
+            inner_operations: ops.map((op: xdr.Operation) => {
+              const body = op.body();
+              const name = body.switch().name;
+              if (name === "invokeHostFunction") {
+                const ihf = body.invokeHostFunction();
+                const hf = ihf.hostFunction();
+                if (hf.switch() === xdr.HostFunctionType.hostFunctionTypeInvokeContract()) {
+                  const inv = hf.invokeContract();
+                  return {
+                    operation: "invokeHostFunction",
+                    contract: inv.contractAddress().toString(),
+                    function: inv.functionName().toString(),
+                    args: inv.args().map(scValToTree),
+                  };
+                }
+              }
+              return { operation: name };
+            }),
+          };
+        }
+
+        // Normal (v1/v0) envelope.
         const tx = env.value().tx ? env.value().tx() : (env as any).v0?.().tx?.();
         const ops = (tx as any).operations?.() ?? [];
         return {
