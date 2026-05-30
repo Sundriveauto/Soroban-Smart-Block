@@ -50,6 +50,11 @@ export default function EventTable({ events }: Props) {
                 <FunctionBadge fn={ev.function} />
               </td>
               <td style={{ ...td, maxWidth: 480, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {ev.is_clawback && (
+                  <span className="badge clawback" style={{ marginRight: 6 }} title="Mandatory authority intervention">
+                    ⚠ COMPLIANCE: CLAWBACK
+                  </span>
+                )}
                 {ev.description}
               </td>
             </tr>

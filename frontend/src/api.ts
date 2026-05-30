@@ -31,6 +31,8 @@ export interface DecodedEvent {
   upgrade_info?: { type: "upgrade"; oldHash: string; newHash: string };
   // Issue #52: storage tier breakdown
   storage_tiers?: StorageTiers;
+  // Issue #74: clawback compliance flag
+  is_clawback?: boolean;
 }
 
 export interface ContractMeta {

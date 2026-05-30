@@ -22,6 +22,16 @@ export default function EventPage() {
       <div className="card" style={{ display: "grid", gap: 12 }}>
         <Row label="Description" value={ev.description} highlight />
         <Row label="Function"    value={ev.function} badge />
+        {ev.is_clawback && (
+          <Row
+            label="Compliance"
+            value={
+              <span className="badge clawback" title="Mandatory authority intervention">
+                ⚠ COMPLIANCE: CLAWBACK — mandatory authority intervention
+              </span>
+            }
+          />
+        )}
         <Row label="Ledger"      value={ev.ledger.toLocaleString()} />
         <Row label="Contract"    value={<Link to={`/contract/${ev.contract_id}`}>{ev.contract_id}</Link>} />
         {ev.tx_hash && <Row label="Tx Hash" value={ev.tx_hash} mono />}
