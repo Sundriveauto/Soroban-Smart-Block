@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Nav() {
   const [q, setQ] = useState("");
@@ -45,6 +46,7 @@ export default function Nav() {
         />
         <button type="submit">Search</button>
       </form>
+      <ThemeToggle />
     </header>
   );
 }

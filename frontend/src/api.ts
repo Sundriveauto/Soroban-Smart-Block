@@ -53,6 +53,19 @@ export interface MigrationStatus {
   migratedAtLedger: number | null;
 }
 
+export interface DependencyAdvisoryPackage {
+  name: string;
+  currentVersion: string;
+  latestVersion: string;
+  upgradeUrl: string;
+}
+
+export interface DependencyAdvisory {
+  outdated: boolean;
+  summary: string;
+  packages: DependencyAdvisoryPackage[];
+}
+
 export interface ContractMeta {
   id: string;
   name: string;
@@ -61,6 +74,7 @@ export interface ContractMeta {
   source?: string;
   source_file?: string;
   source_files?: SourceFile[];
+  dependency_advisory?: DependencyAdvisory | null;
 }
 
 export interface BurnAlert {
@@ -133,6 +147,7 @@ export const api = {
   },
   event:    (seq: number)     => get<DecodedEvent>(`/events/${seq}`),
   contract:        (id: string) => get<ContractMeta>(`/contracts/${id}`),
+  burnAlerts:      (contract: string) => get<BurnAlert[]>(`/burn-alerts?contract=${contract}`),
   migrationStatus: (id: string) => get<MigrationStatus>(`/contracts/${id}/migration-status`),
   wallet:   (address: string) => get<DecodedEvent[]>(`/wallet/${address}`),
   roles:    (id: string)      => get<PrivilegedRole[]>(`/contracts/${id}/roles`),

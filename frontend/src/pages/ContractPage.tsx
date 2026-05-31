@@ -67,6 +67,12 @@ export default function ContractPage() {
     enabled: !!id,
   });
 
+  const { data: burnAlerts = [] } = useQuery({
+    queryKey: ["burn-alerts", id],
+    queryFn: () => api.burnAlerts(id),
+    enabled: !!id,
+  });
+
   const { data: migrationStatus } = useQuery({
     queryKey: ["migration-status", id],
     queryFn: () => api.migrationStatus(id),
@@ -137,6 +143,27 @@ export default function ContractPage() {
             </button>
           </div>
         </div>
+
+        {meta.dependency_advisory?.outdated && (
+          <div className="card" style={{ borderLeft: "4px solid #f97316", background: "rgba(249, 115, 22, 0.08)", color: "#78350f", marginTop: 12 }}>
+            <strong>{meta.dependency_advisory.summary}</strong>
+            <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+              {meta.dependency_advisory.packages.map(pkg => (
+                <div key={pkg.name} style={{ minWidth: 180 }}>
+                  <div style={{ fontSize: 13 }}>
+                    <span style={{ fontWeight: 700 }}>{pkg.name}</span>
+                    <span style={{ marginLeft: 6 }}>
+                      {pkg.currentVersion} → {pkg.latestVersion}
+                    </span>
+                  </div>
+                  <a href={pkg.upgradeUrl} target="_blank" rel="noreferrer" style={{ color: "#b45309", fontSize: 13 }}>
+                    View upgrade guide
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", paddingBottom: 0 }}>
