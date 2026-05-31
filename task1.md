@@ -1,35 +1,35 @@
-#123 Design an All-In-One Developer Workspace View for Verified Contracts
+#117 Index Internal Sub-Invocations for Detailed Search Filters
 Repo Avatar
 Soroban-Smart-Block-Explorer/Soroban-Smart-Block
-Description: Build a unified developer workspace layout that combines the contract's source code, available functions, and transaction history into a single screen.
+Description: Expand the database indexer to make internal contract-to-contract sub-calls fully searchable via your application's search filters.
 
-Technical Considerations: Design an organized, multi-tab layout that allows developers to seamlessly switch between reading code, executing functions, and reviewing live logs.
+Technical Considerations: Save sub-invocation steps as separate searchable records, linking them back to their primary parent transaction hash.
 
-Acceptance Criteria: The unified workspace page provides a smooth, intuitive navigation flow that fits all core developer tools cleanly on a single screen layout.
+Acceptance Criteria: Searching for a specific contract ID correctly returns transactions where it was called internally as a secondary action step, not just direct interactions.
 
-#124 Build a Network Comparison Tool for Multi-Environment Contract Deployments
+#118 Build a Transaction Status Monitoring API with Server-Sent Events (SSE)
 Repo Avatar
 Soroban-Smart-Block-Explorer/Soroban-Smart-Block
-Description: Create a diagnostic tool that checks and displays whether a contract is deployed across different network environments like Mainnet, Testnet, and Futurenet.
+Description: Implement a lightweight real-time status update API using Server-Sent Events to keep users informed as their pending transactions are processed.
 
-Technical Considerations: Query across all target network RPC endpoints using the contract ID to compare active version balances and WASM hash profiles.
+Technical Considerations: Provide a low-overhead, unidirectional live stream link that updates the frontend immediately when a transaction changes status from pending to success or failure.
 
-Acceptance Criteria: A status matrix panel clearly shows whether the contract is live on each network, highlighting any version or code mismatches between environments.
+Acceptance Criteria: The transaction monitoring page updates its status instantly without requiring the user's browser to refresh or repeatedly poll the server.
 
-#125 Add an Automatic Gas-Limit Alert Flag for Complex Transactions
+#119 Create a Batch Multi-Call Constructor Interface Panel
 Repo Avatar
 Soroban-Smart-Block-Explorer/Soroban-Smart-Block
-Description: Implement a warning indicator that flags transactions that consume more than 80% of the network's maximum allowed contract execution gas limits.
+Description: Build a frontend developer tool panel that lets users chain multiple contract calls together into a single transaction package.
 
-Technical Considerations: Calculate resource usage metrics directly from the transaction's processing metadata to identify high-cost operations.
+Technical Considerations: Assemble complex multi-operation transaction envelopes by arranging sequential contract calls into an ordered execution list.
 
-Acceptance Criteria: Transactions with high resource consumption display an optimization warning tag, alerting developers to review the function's code efficiency.
+Acceptance Criteria: A user can add multiple distinct contract calls to a visual builder, order them step-by-step, and generate a single signed transaction package.
 
-#126 Build a Interactive Graph Component for Complex Address Connections
+#120 Build a Quick-Copy Button for Function SDK Snippets
 Repo Avatar
 Soroban-Smart-Block-Explorer/Soroban-Smart-Block
-Description: Create a visual connection map that shows how a contract interacts and transfers assets with external addresses and other smart contracts.
+Description: Add a quick-copy button that generates ready-to-use code snippets for a contract's functions across multiple popular programming languages.
 
-Technical Considerations: Use a high-performance network graphing tool (like Vis.js or Cytoscape) to render an interactive map of address interactions and fund flows.
+Technical Considerations: Create code generation templates that dynamically populate the viewed contract ID and function signature into JavaScript, Python, and Rust code examples.
 
-Acceptance Criteria: Users can view an interactive, node-based graph detailing transaction routes and connection lines between the contract and associated accounts.
+Acceptance Criteria: Clicking the copy option lets developers instantly paste a fully formed, syntax-correct code snippet into their local codebase.
