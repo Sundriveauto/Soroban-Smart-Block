@@ -11,6 +11,7 @@ import SimulateButton from "../components/SimulateButton";
 import InvocationFlowChart, { type InvocationNode } from "../components/InvocationFlowChart";
 import PrivilegedRoles from "../components/PrivilegedRoles";
 import SdkSnippet from "../components/SdkSnippet";
+import CircuitBreakerStatus from "../components/CircuitBreakerStatus";
 
 // Demo source shown when no verified source is uploaded
 const DEMO_SOURCE = `// Verified source not yet uploaded for this contract.
@@ -152,6 +153,9 @@ export default function ContractPage() {
       {migrationStatus?.pending && migrationStatus.upgradedAtLedger != null && (
         <MigrationBanner upgradedAtLedger={migrationStatus.upgradedAtLedger} />
       )}
+
+      {/* Issue #86: Circuit breaker status banner */}
+      <CircuitBreakerStatus contractId={id} />
 
       {/* Header */}
       <div className="card">
