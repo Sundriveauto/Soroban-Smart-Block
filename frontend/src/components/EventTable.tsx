@@ -147,6 +147,32 @@ function TTLExtensionBadge({ ext }: { ext: NonNullable<DecodedEvent["ttl_extensi
   );
 }
 
+/** Issue #177: Inline badge for factory deployment events. */
+function FactoryDeploymentBadge({ deployment }: { deployment: NonNullable<DecodedEvent["factory_deployment"]> }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "2px 8px",
+        background: "rgba(210,168,255,0.12)",
+        border: "1px solid #d2a8ff",
+        borderRadius: 4,
+        fontSize: 11,
+        color: "#d2a8ff",
+        whiteSpace: "nowrap",
+        marginRight: 6,
+        verticalAlign: "middle",
+        fontWeight: 600,
+      }}
+      title={`Factory deployment: ${deployment.contracts.length} contracts deployed in single transaction`}
+    >
+      ⬢ FACTORY DEPLOYMENT ({deployment.contracts.length} contracts)
+    </span>
+  );
+}
+
 export default function EventTable({ events }: Props) {
   if (!events.length) return <p style={{ color: "var(--muted)" }}>No events found.</p>;
 
@@ -196,6 +222,8 @@ export default function EventTable({ events }: Props) {
                   </span>
                 )}
                 {ev.ttl_extension && <TTLExtensionBadge ext={ev.ttl_extension} />}
+                {ev.factory_deployment && <FactoryDeploymentBadge deployment={ev.factory_deployment} />}
+                {ev.sac_side_effect && <SacSideEffectBadge kind={ev.sac_side_effect} />}
                 <LinkedDescription text={ev.description} />
                 {ev.function === "transfer" && (() => {
                   const t = parseTransfer(ev.description);
