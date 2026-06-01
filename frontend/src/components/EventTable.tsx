@@ -83,6 +83,36 @@ function FunctionBadge({ fn }: { fn: string }) {
   return <span className="badge">{fn}</span>;
 }
 
+/** Badge for SAC implicit side-effects (auto-created account or trustline). */
+function SacSideEffectBadge({ kind }: { kind: NonNullable<DecodedEvent["sac_side_effect"]> }) {
+  const isAccountCreated = kind === "account_created";
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 8px",
+        background: isAccountCreated ? "rgba(16,185,129,0.12)" : "rgba(59,130,246,0.12)",
+        border: `1px solid ${isAccountCreated ? "#10b981" : "#3b82f6"}`,
+        borderRadius: 4,
+        fontSize: 11,
+        color: isAccountCreated ? "#34d399" : "#60a5fa",
+        whiteSpace: "nowrap",
+        marginRight: 6,
+        verticalAlign: "middle",
+      }}
+      title={
+        isAccountCreated
+          ? "SAC implicitly created a new Stellar account entry for this recipient"
+          : "SAC implicitly opened a trustline for this asset on the recipient account"
+      }
+    >
+      {isAccountCreated ? "⬡ SAC Auto-Created Account Entry" : "⬡ SAC Native Trustline Open"}
+    </span>
+  );
+}
+
 /** Inline badge for Protocol 26 TTL extension events. */
 function TTLExtensionBadge({ ext }: { ext: NonNullable<DecodedEvent["ttl_extension"]> }) {
   return (

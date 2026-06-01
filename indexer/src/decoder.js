@@ -66,7 +66,8 @@ function extractGasCosts(ev) {
   return result;
 }
 import { db } from "./db.js";
-import { sacLabel, detectSac } from "./sac.js";
+import { sacLabel, detectSac, detectSacAsset } from "./sac.js";
+import { classifySacSideEffect } from "./sacSideEffect.js";
 import { extractRoleAssignment } from "./roleTracker.js";
 import { decodeRwaEvent } from "./rwaDecoder.js";
 
@@ -115,6 +116,7 @@ export async function decode(ev) {
   const vaultMeta = await db.getVault(contractId).catch(() => null);
 
   const { isSac, assetCode } = detectSac(contractId);
+  const { assetIssuer } = detectSacAsset(contractId);
   const contractLabel = vaultMeta?.name
     ? `${vaultMeta.name} (Vault)`
     : isSac
