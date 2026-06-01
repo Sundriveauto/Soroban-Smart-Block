@@ -23,20 +23,26 @@ export interface StorageTiers {
 export interface FeeBumpInfo {
   /** Outer fee-bump feeSource — pays the network fee. */
   sponsor: string;
-  /** Inner tx sourceAccount — provides sequence numbers (channel account). */
-  channel_account: string;
-  /** Explicit SorobanCredentials signer — the end-user executing contract logic. */
+  /** Inner transaction source account (channel account — provides sequence number for parallel execution). */
+  inner_source: string;
+  /** Actual signing identity from Soroban auth credentials (who authorised the contract logic). */
   actual_caller: string | null;
-  /** @deprecated Use channel_account */
-  inner_source?: string;
 }
 
-// Issue #172: CAP-0077 quorum freeze status
-export interface QuorumFreezeStatus {
-  is_frozen: boolean;
-  frozen_ids: string[];
-  ledger: number | null;
-  tx_hash: string | null;
+// Issue #164: CAP-0080 ZK host function types
+export interface ZkHostCall {
+  fn_name: string;
+  curve: "BN254" | "BLS12-381";
+  kind: "msm" | "pairing" | "scalar_field" | "map_to_curve" | "hash_to_curve" | "other";
+  cpu_native: number;
+  cpu_legacy: number;
+}
+
+export interface ZkCostDelta {
+  total_native: number;
+  total_legacy: number;
+  saved_cpu: number;
+  saved_pct: number;
 }
 
 export interface DecodedEvent {
@@ -68,8 +74,8 @@ export interface DecodedEvent {
     min_extension: number | null;
     max_extension: number | null;
   };
-  // Issue #173: fee-bump chain-of-custody
-  fee_bump?: FeeBumpInfo;
+  // Issue #169: fee-bump chain of custody
+  fee_bump?: FeeBumpInfo | null;
 }
 
 export interface SourceFile {
@@ -125,6 +131,23 @@ export interface ContractTransactionsResponse {
     total_pages: number;
     has_next: boolean;
   };
+}
+
+// Issue #142: contract dependency graph
+export interface GraphNode3D {
+  id: string;
+  callCount: number;
+}
+
+export interface GraphLink3D {
+  source: string;
+  target: string;
+  value: number;
+}
+
+export interface ContractGraphData {
+  nodes: GraphNode3D[];
+  links: GraphLink3D[];
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -187,6 +210,14 @@ export interface TxStatusResponse {
   error?: string | null;
 }
 
+// Issue #165: Live TTL status for contract instance and code entries
+export interface ContractTTL {
+  contract_id: string;
+  current_ledger: number;
+  instance: { live_until_ledger: number | null };
+  code:     { live_until_ledger: number | null };
+}
+
 export interface CircuitBreakerStatus {
   has_circuit_breaker: boolean;
   is_paused: boolean;
@@ -208,6 +239,7 @@ export const api = {
     return get<DecodedEvent[]>(`/events?${q}`);
   },
   event:    (seq: number)     => get<DecodedEvent>(`/events/${seq}`),
+  zkCosts:  (seq: number)     => get<{ calls: ZkHostCall[]; delta: ZkCostDelta | null }>(`/events/${seq}/zk-costs`),
   contract:        (id: string) => get<ContractMeta>(`/contracts/${id}`),
   burnAlerts:      (contract: string) => get<BurnAlert[]>(`/burn-alerts?contract=${contract}`),
   migrationStatus: (id: string) => get<MigrationStatus>(`/contracts/${id}/migration-status`),
@@ -257,20 +289,15 @@ export const api = {
       body: JSON.stringify(body),
     }).then(r => { if (!r.ok) throw new Error(`API ${r.status}`); return r.json(); }),
 
+  // Issue #165: live TTL status (instance + code expiration ledgers)
+  contractTTL: (id: string) => get<ContractTTL>(`/contracts/${id}/ttl`),
+
   // Issue #140: state-diff timeline
   stateDiffs: (id: string, key?: string) => {
     const q = key ? `?key=${encodeURIComponent(key)}` : "";
     return get<StateDiff[]>(`/contracts/${id}/state-diffs${q}`);
   },
 
-  // Issue #172: CAP-0077 quorum freeze status
-  quorumFreeze: (id: string) => get<QuorumFreezeStatus>(`/contracts/${id}/quorum-freeze`),
-
-  // Issue #173: Fee-bump chain-of-custody parser
-  parseFeeBump: (xdr: string) =>
-    fetch(`${BASE}/fee-bump/parse`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ xdr }),
-    }).then(r => { if (!r.ok) throw new Error(`API ${r.status}`); return r.json() as Promise<FeeBumpInfo>; }),
+  // Issue #142: global contract dependency graph
+  contractGraph: (limit = 500) => get<ContractGraphData>(`/contract-graph?limit=${limit}`),
 };

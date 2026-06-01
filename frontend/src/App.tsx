@@ -6,6 +6,7 @@ import WalletPage from "./pages/WalletPage";
 import EventPage from "./pages/EventPage";
 import XdrInspector from "./pages/XdrInspector";
 import RpcMetricsDashboard from "./pages/RpcMetricsDashboard";
+import GraphPage from "./pages/GraphPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/event/:seq" element={<EventPage />} />
           <Route path="/xdr" element={<XdrInspector />} />
           <Route path="/rpc-metrics" element={<RpcMetricsDashboard />} />
+          <Route path="/graph" element={<GraphPage />} />
         </Routes>
       </main>
     </>

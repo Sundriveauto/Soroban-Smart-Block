@@ -4,25 +4,44 @@ interface Props {
   feeBump: FeeBumpInfo;
 }
 
-// Resolve channel_account from either new or legacy field
-function channelAccount(feeBump: FeeBumpInfo): string {
-  return feeBump.channel_account ?? feeBump.inner_source ?? "";
+/** Shorten a Stellar address for display. */
+function short(addr: string) {
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
 export default function FeeSponsorBanner({ feeBump }: Props) {
-  const channel = channelAccount(feeBump);
-  const hasCaller = !!feeBump.actual_caller;
+  const tiers: { role: string; label: string; address: string; color: string }[] = [
+    {
+      role: "Sponsor",
+      label: "Paid the fee",
+      address: feeBump.sponsor,
+      color: "#f0a500",
+    },
+    {
+      role: "Channel Account",
+      label: "Provided sequence number",
+      address: feeBump.inner_source,
+      color: "#58a6ff",
+    },
+    ...(feeBump.actual_caller
+      ? [
+          {
+            role: "Actual Caller",
+            label: "Signed the contract logic",
+            address: feeBump.actual_caller,
+            color: "#3fb950",
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div
       className="card"
-      style={{
-        marginTop: 12,
-        borderLeft: "3px solid var(--accent)",
-        background: "var(--surface, #1a1a2e)",
-      }}
+      style={{ marginTop: 12, borderLeft: "3px solid var(--accent)" }}
+      aria-label="Fee-bump chain of custody"
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <span
           style={{
             fontSize: 11,
@@ -32,50 +51,46 @@ export default function FeeSponsorBanner({ feeBump }: Props) {
             color: "var(--accent)",
           }}
         >
-          {hasCaller ? "Chain of Custody — Fee-Bump Transaction" : "Fee-Bump Sponsored Transaction"}
+          Fee-Bump · Chain of Custody
         </span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <TierRow tier="1" label="Sponsor Wallet" sublabel="pays network fee" address={feeBump.sponsor} accent="#58a6ff" />
-
-        <Connector />
-
-        <TierRow tier="2" label="Channel Account" sublabel="provides sequence number" address={channel} accent="var(--text)" />
-
-        {hasCaller && (
-          <>
-            <Connector />
-            <TierRow tier="3" label="Actual Caller" sublabel="signs contract logic" address={feeBump.actual_caller!} accent="#3fb950" />
-          </>
-        )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        {tiers.map((tier, i) => (
+          <div key={tier.role}>
+            <TierRow {...tier} />
+            {i < tiers.length - 1 && (
+              <div
+                aria-hidden="true"
+                style={{
+                  paddingLeft: 20,
+                  lineHeight: 1,
+                  color: "var(--muted)",
+                  fontSize: 14,
+                  userSelect: "none",
+                }}
+              >
+                ↓
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-    </div>
-  );
-}
-
-function Connector() {
-  return (
-    <div style={{ paddingLeft: 24, color: "var(--muted)", fontSize: 11, lineHeight: 1 }}>
-      ↓ on behalf of
     </div>
   );
 }
 
 function TierRow({
-  tier,
+  role,
   label,
-  sublabel,
   address,
-  accent,
+  color,
 }: {
-  tier: string;
+  role: string;
   label: string;
-  sublabel: string;
   address: string;
-  accent: string;
+  color: string;
 }) {
-  const short = address.length > 10 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
   return (
     <div
       style={{
@@ -88,35 +103,29 @@ function TierRow({
         borderLeft: `3px solid ${accent}`,
       }}
     >
+      {/* Coloured role pill */}
       <span
         style={{
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: accent,
-          color: "#fff",
-          fontSize: 10,
+          minWidth: 130,
+          fontSize: 11,
           fontWeight: 700,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color,
         }}
       >
         {tier}
       </span>
-      <div style={{ minWidth: 150 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          {label}
-        </div>
-        <div style={{ fontSize: 10, color: "var(--muted)", opacity: 0.7 }}>{sublabel}</div>
-      </div>
+
+      {/* Address */}
       <code
-        style={{ fontSize: 13, fontFamily: "monospace", color: accent, wordBreak: "break-all" }}
+        style={{ fontSize: 13, fontFamily: "monospace", color, wordBreak: "break-all" }}
         title={address}
       >
-        {short}
+        {short(address)}
       </code>
+
+      {/* Full address (truncated) */}
       <span
         style={{
           fontSize: 11,
@@ -130,6 +139,18 @@ function TierRow({
         title={address}
       >
         {address}
+      </span>
+
+      {/* Role description */}
+      <span
+        style={{
+          fontSize: 11,
+          color: "var(--muted)",
+          whiteSpace: "nowrap",
+          fontStyle: "italic",
+        }}
+      >
+        {label}
       </span>
     </div>
   );
