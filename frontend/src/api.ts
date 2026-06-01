@@ -23,8 +23,10 @@ export interface StorageTiers {
 export interface FeeBumpInfo {
   /** Outer fee-paying account (the sponsor). */
   sponsor: string;
-  /** Inner transaction source account (the original caller). */
+  /** Inner transaction source account (channel account — provides sequence number for parallel execution). */
   inner_source: string;
+  /** Actual signing identity from Soroban auth credentials (who authorised the contract logic). */
+  actual_caller: string | null;
 }
 
 // Issue #164: CAP-0080 ZK host function types
@@ -72,11 +74,8 @@ export interface DecodedEvent {
     min_extension: number | null;
     max_extension: number | null;
   };
-  // Issue #164: CAP-0080 ZK host function calls and cost delta
-  zk_host_calls?: {
-    calls: ZkHostCall[];
-    delta: ZkCostDelta;
-  };
+  // Issue #169: fee-bump chain of custody
+  fee_bump?: FeeBumpInfo | null;
 }
 
 export interface SourceFile {

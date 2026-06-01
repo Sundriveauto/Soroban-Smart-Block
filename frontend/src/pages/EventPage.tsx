@@ -5,7 +5,7 @@ import ResourceCosts from "../components/ResourceCosts";
 import StorageTierBreakdown from "../components/StorageTierBreakdown";
 import FiatValue from "../components/FiatValue";
 import GasLimitAlert from "../components/GasLimitAlert";
-import ZkCostDelta from "../components/ZkCostDelta";
+import FeeSponsorBanner from "../components/FeeSponsorBanner";
 
 /** Parse amount and symbol from a transfer description. */
 function parseTransfer(description: string): { amount: number; symbol: string } | null {
