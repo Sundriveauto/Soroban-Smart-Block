@@ -7,13 +7,15 @@
 
 import { useEffect, useState } from "react";
 
-export type TxStatus = "pending" | "success" | "failed";
+export type TxStatus = "pending" | "success" | "failed" | "resource_limit_exceeded";
 
 export interface TxStatusPayload {
   tx_hash: string;
   status: TxStatus;
   ledger: number | null;
   error: string | null;
+  /** Issue #134: true when the tx was dropped due to block compute capacity being full */
+  is_resource_limit_exceeded?: boolean;
 }
 
 export function useTxStatus(txHash: string | null | undefined) {

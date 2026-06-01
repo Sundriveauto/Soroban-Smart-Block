@@ -26,6 +26,8 @@ export const db = {
         storage_tiers    JSONB,
         -- Issue #74: clawback compliance flag
         is_clawback      BOOLEAN NOT NULL DEFAULT FALSE,
+        -- Issue #134: block compute capacity exceeded flag
+        is_resource_limit_exceeded BOOLEAN NOT NULL DEFAULT FALSE,
         created_at       TIMESTAMPTZ DEFAULT NOW()
       );
       -- Issue #35: explicit index mappings on high-frequency lookup columns
@@ -79,6 +81,9 @@ export const db = {
       ALTER TABLE contracts ADD COLUMN IF NOT EXISTS source_files JSONB;
       -- footprint contention: tx writes to same slot as preceding tx in same ledger
       ALTER TABLE events ADD COLUMN IF NOT EXISTS footprint_contention BOOLEAN NOT NULL DEFAULT FALSE;
+
+      -- Issue #134: resource-limit-exceeded flag
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS is_resource_limit_exceeded BOOLEAN NOT NULL DEFAULT FALSE;
 
       -- Issue #117: sub-invocation indexing
       CREATE TABLE IF NOT EXISTS sub_invocations (

@@ -153,6 +153,7 @@ async function run() {
   startBurnDetector();
   startMetricsCollector();  // Issue #115 — RPC latency probes
   startPruner();            // Issue #116 — daily temporary-storage cleanup
+  startGasGuzzlersWorker(); // Issue #133 — daily gas consumption leaderboard
 
   // Bootstrap vault indexer: initial ratio snapshot for all registered vaults
   refreshAllVaults().catch(() => {});
