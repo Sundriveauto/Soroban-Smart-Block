@@ -21,10 +21,22 @@ export interface StorageTiers {
 }
 
 export interface FeeBumpInfo {
-  /** Outer fee-paying account (the sponsor). */
+  /** Outer fee-bump feeSource — pays the network fee. */
   sponsor: string;
-  /** Inner transaction source account (the original caller). */
-  inner_source: string;
+  /** Inner tx sourceAccount — provides sequence numbers (channel account). */
+  channel_account: string;
+  /** Explicit SorobanCredentials signer — the end-user executing contract logic. */
+  actual_caller: string | null;
+  /** @deprecated Use channel_account */
+  inner_source?: string;
+}
+
+// Issue #172: CAP-0077 quorum freeze status
+export interface QuorumFreezeStatus {
+  is_frozen: boolean;
+  frozen_ids: string[];
+  ledger: number | null;
+  tx_hash: string | null;
 }
 
 export interface DecodedEvent {
@@ -56,6 +68,8 @@ export interface DecodedEvent {
     min_extension: number | null;
     max_extension: number | null;
   };
+  // Issue #173: fee-bump chain-of-custody
+  fee_bump?: FeeBumpInfo;
 }
 
 export interface SourceFile {
@@ -248,4 +262,15 @@ export const api = {
     const q = key ? `?key=${encodeURIComponent(key)}` : "";
     return get<StateDiff[]>(`/contracts/${id}/state-diffs${q}`);
   },
+
+  // Issue #172: CAP-0077 quorum freeze status
+  quorumFreeze: (id: string) => get<QuorumFreezeStatus>(`/contracts/${id}/quorum-freeze`),
+
+  // Issue #173: Fee-bump chain-of-custody parser
+  parseFeeBump: (xdr: string) =>
+    fetch(`${BASE}/fee-bump/parse`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ xdr }),
+    }).then(r => { if (!r.ok) throw new Error(`API ${r.status}`); return r.json() as Promise<FeeBumpInfo>; }),
 };

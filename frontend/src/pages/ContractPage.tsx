@@ -17,6 +17,7 @@ import NetworkComparison from "../components/NetworkComparison";
 import AddressConnectionGraph from "../components/AddressConnectionGraph";
 import WasmHashZone from "../components/WasmHashZone";
 import { useLocalAbi } from "../hooks/useLocalAbi";
+import QuorumFreezeBadge from "../components/QuorumFreezeBadge";
 
 // Demo source shown when no verified source is uploaded
 const DEMO_SOURCE = `// Verified source not yet uploaded for this contract.
@@ -162,6 +163,9 @@ export default function ContractPage() {
 
       {/* Issue #86: Circuit breaker status banner */}
       <CircuitBreakerStatus contractId={id} />
+
+      {/* Issue #172: CAP-0077 quorum freeze security warning */}
+      <QuorumFreezeBadge contractId={id} />
 
       {/* Issue #81: RWA metadata display */}
       <RwaMetadataDisplay contractId={id} />

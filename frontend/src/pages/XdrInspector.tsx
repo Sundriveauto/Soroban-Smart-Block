@@ -64,11 +64,44 @@ function tryDecode(b64: string): { tree: TreeNode; label: string } | { error: st
           const fbTx = env.feeBump().tx();
           const sponsor = muxedToGAddress(fbTx.feeSource());
           const innerTx = fbTx.innerTx().v1().tx();
-          const inner_source = muxedToGAddress(innerTx.sourceAccount());
+          const channel_account = muxedToGAddress(innerTx.sourceAccount());
           const ops = innerTx.operations() ?? [];
+
+          // Extract actual_caller from ContractAuth credentials
+          let actual_caller: string | null = null;
+          try {
+            outer: for (const op of ops) {
+              const body = op.body();
+              if (body.switch().name !== "invokeHostFunction") continue;
+              const auths = body.invokeHostFunction().auth() ?? [];
+              for (const authEntry of auths) {
+                const creds = authEntry.credentials();
+                if (creds.switch().name === "sorobanCredentialsSourceAccount") continue;
+                try {
+                  const scAddr = creds.address().address();
+                  const addrType = scAddr.switch().name;
+                  if (addrType === "scAddressTypeAccount") {
+                    actual_caller = StrKey.encodeEd25519PublicKey(scAddr.accountId().ed25519());
+                    break outer;
+                  }
+                  if (addrType === "scAddressTypeContract") {
+                    actual_caller = StrKey.encodeContract(scAddr.contractId());
+                    break outer;
+                  }
+                } catch { /* skip */ }
+              }
+            }
+          } catch { /* leave null */ }
+
+          const chain_of_custody: Record<string, string> = {
+            "Tier 1 — Sponsor Wallet (pays fee)": sponsor,
+            "Tier 2 — Channel Account (sequence)": channel_account,
+          };
+          if (actual_caller) chain_of_custody["Tier 3 — Actual Caller (contract logic)"] = actual_caller;
+
           return {
             type: "FeeBumpTransactionEnvelope",
-            fee_sponsorship: { "Paid by Sponsor": sponsor, "on behalf of Caller": inner_source },
+            chain_of_custody,
             inner_operations: ops.map((op: xdr.Operation) => {
               const body = op.body();
               const name = body.switch().name;
