@@ -164,6 +164,9 @@ export default function ContractPage() {
       {/* Issue #86: Circuit breaker status banner */}
       <CircuitBreakerStatus contractId={id} />
 
+      {/* Issue #172: CAP-0077 quorum freeze security warning */}
+      <QuorumFreezeBadge contractId={id} />
+
       {/* Issue #81: RWA metadata display */}
       <RwaMetadataDisplay contractId={id} />
 
