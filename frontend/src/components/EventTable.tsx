@@ -2,6 +2,40 @@ import { Link } from "react-router-dom";
 import type { DecodedEvent } from "../api";
 import FiatValue from "./FiatValue";
 import { getGasAlert } from "./GasLimitAlert";
+import { addressRoute, truncateAddress, isAccountAddress, isContractAddress, isMuxedAddress } from "../utils/strkey";
+
+/** Stellar strkey address pattern: G.../C.../M... (56+ chars, base32 alphabet) */
+const ADDRESS_RE = /\b([GCM][A-Z2-7]{55,})\b/g;
+
+/**
+ * Render a description string with any Stellar addresses (G..., C..., M...)
+ * replaced by clickable <Link> elements.
+ * M... muxed addresses link to the base G... wallet page via addressRoute().
+ */
+function LinkedDescription({ text }: { text: string }) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  ADDRESS_RE.lastIndex = 0;
+  while ((match = ADDRESS_RE.exec(text)) !== null) {
+    const addr = match[1];
+    if (!isAccountAddress(addr) && !isContractAddress(addr) && !isMuxedAddress(addr)) continue;
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    const route = addressRoute(addr);
+    if (route) {
+      parts.push(
+        <Link key={match.index} to={route} title={addr}>
+          {truncateAddress(addr)}
+        </Link>
+      );
+    } else {
+      parts.push(<span key={match.index} title={addr}>{truncateAddress(addr)}</span>);
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
 
 /** Parse a multi-hop swap path from a description or swap_path field. */
 function parseSwapPath(description: string): string[] | null {
@@ -47,6 +81,36 @@ function FunctionBadge({ fn }: { fn: string }) {
     );
   }
   return <span className="badge">{fn}</span>;
+}
+
+/** Badge for SAC implicit side-effects (auto-created account or trustline). */
+function SacSideEffectBadge({ kind }: { kind: NonNullable<DecodedEvent["sac_side_effect"]> }) {
+  const isAccountCreated = kind === "account_created";
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 8px",
+        background: isAccountCreated ? "rgba(16,185,129,0.12)" : "rgba(59,130,246,0.12)",
+        border: `1px solid ${isAccountCreated ? "#10b981" : "#3b82f6"}`,
+        borderRadius: 4,
+        fontSize: 11,
+        color: isAccountCreated ? "#34d399" : "#60a5fa",
+        whiteSpace: "nowrap",
+        marginRight: 6,
+        verticalAlign: "middle",
+      }}
+      title={
+        isAccountCreated
+          ? "SAC implicitly created a new Stellar account entry for this recipient"
+          : "SAC implicitly opened a trustline for this asset on the recipient account"
+      }
+    >
+      {isAccountCreated ? "⬡ SAC Auto-Created Account Entry" : "⬡ SAC Native Trustline Open"}
+    </span>
+  );
 }
 
 /** Inline badge for Protocol 26 TTL extension events. */
@@ -132,7 +196,7 @@ export default function EventTable({ events }: Props) {
                   </span>
                 )}
                 {ev.ttl_extension && <TTLExtensionBadge ext={ev.ttl_extension} />}
-                {ev.description}
+                <LinkedDescription text={ev.description} />
                 {ev.function === "transfer" && (() => {
                   const t = parseTransfer(ev.description);
                   return t ? <FiatValue amount={t.amount} symbol={t.symbol} /> : null;
