@@ -7,6 +7,7 @@ import EventPage from "./pages/EventPage";
 import XdrInspector from "./pages/XdrInspector";
 import RpcMetricsDashboard from "./pages/RpcMetricsDashboard";
 import GraphPage from "./pages/GraphPage";
+import SandboxPage from "./pages/SandboxPage";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/xdr" element={<XdrInspector />} />
           <Route path="/rpc-metrics" element={<RpcMetricsDashboard />} />
           <Route path="/graph" element={<GraphPage />} />
+          <Route path="/sandbox" element={<SandboxPage />} />
         </Routes>
       </main>
     </>

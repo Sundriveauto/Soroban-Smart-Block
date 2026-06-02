@@ -40,6 +40,9 @@ export default function Nav() {
       <Link to="/graph" style={{ fontSize: 13, whiteSpace: "nowrap", color: "var(--muted)" }}>
         Dep Graph
       </Link>
+      <Link to="/sandbox" style={{ fontSize: 13, whiteSpace: "nowrap", color: "var(--muted)" }}>
+        Sandbox
+      </Link>
       <form onSubmit={search} style={{ display: "flex", gap: 8, flex: 1, maxWidth: 600 }}>
         <input
           value={q}
