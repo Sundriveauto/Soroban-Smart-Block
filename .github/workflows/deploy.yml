@@ -135,14 +135,14 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Attest indexer image
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/indexer
           subject-digest: ${{ steps.build-indexer.outputs.digest }}
           push-to-registry: true
 
       - name: Attest frontend image
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
           subject-digest: ${{ steps.build-frontend.outputs.digest }}
