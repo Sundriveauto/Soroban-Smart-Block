@@ -1,32 +1,41 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import Nav from "./components/Nav";
-import Home from "./pages/Home";
-import ContractPage from "./pages/ContractPage";
-import WalletPage from "./pages/WalletPage";
-import EventPage from "./pages/EventPage";
-import XdrInspector from "./pages/XdrInspector";
-import RpcMetricsDashboard from "./pages/RpcMetricsDashboard";
-import GraphPage from "./pages/GraphPage";
-import SandboxPage from "./pages/SandboxPage";
-import DeveloperWorkspace from "./pages/DeveloperWorkspace";
+import ErrorBoundary from "./components/ErrorBoundary";
+
+const Home = lazy(() => import("./pages/Home"));
+const ContractPage = lazy(() => import("./pages/ContractPage"));
+const WalletPage = lazy(() => import("./pages/WalletPage"));
+const EventPage = lazy(() => import("./pages/EventPage"));
+const XdrInspector = lazy(() => import("./pages/XdrInspector"));
+const RpcMetricsDashboard = lazy(() => import("./pages/RpcMetricsDashboard"));
+const GraphPage = lazy(() => import("./pages/GraphPage"));
+const SandboxPage = lazy(() => import("./pages/SandboxPage"));
+const DeveloperWorkspace = lazy(() => import("./pages/DeveloperWorkspace"));
+
+function Fallback() {
+  return <p style={{ padding: 32, textAlign: "center", color: "var(--muted)" }}>Loading…</p>;
+}
 
 export default function App() {
   return (
-    <>
+    <ErrorBoundary>
       <Nav />
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/contract/:id" element={<ContractPage />} />
-          <Route path="/contract/:id/workspace" element={<DeveloperWorkspace />} />
-          <Route path="/wallet/:address" element={<WalletPage />} />
-          <Route path="/event/:seq" element={<EventPage />} />
-          <Route path="/xdr" element={<XdrInspector />} />
-          <Route path="/rpc-metrics" element={<RpcMetricsDashboard />} />
-          <Route path="/graph" element={<GraphPage />} />
-          <Route path="/sandbox" element={<SandboxPage />} />
-        </Routes>
+        <Suspense fallback={<Fallback />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/contract/:id" element={<ContractPage />} />
+            <Route path="/contract/:id/workspace" element={<DeveloperWorkspace />} />
+            <Route path="/wallet/:address" element={<WalletPage />} />
+            <Route path="/event/:seq" element={<EventPage />} />
+            <Route path="/xdr" element={<XdrInspector />} />
+            <Route path="/rpc-metrics" element={<RpcMetricsDashboard />} />
+            <Route path="/graph" element={<GraphPage />} />
+            <Route path="/sandbox" element={<SandboxPage />} />
+          </Routes>
+        </Suspense>
       </main>
-    </>
+    </ErrorBoundary>
   );
 }
