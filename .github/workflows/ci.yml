@@ -92,23 +92,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── 2. Rust Contract Matrix ──────────────────────────────────────────────────
+  # ── 2. Rust Contract ──────────────────────────────────────────────────────────
   rust:
-    name: Rust (${{ matrix.os }}, ${{ matrix.rust }})
-    runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.rust == 'nightly' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        rust: [stable, nightly]
-        features: ["", "--all-features"]
+    name: Rust
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           target: wasm32-unknown-unknown
           components: rustfmt, clippy
 
@@ -119,42 +112,38 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target/
-          key: ${{ runner.os }}-${{ matrix.rust }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.rust }}-cargo-
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
 
-      - name: cargo check
-        run: cargo check ${{ matrix.features }}
+      - name: cargo check --all-features
+        run: cargo check --all-features
 
-      - name: cargo test
-        run: cargo test -p soroban-explorer-contract ${{ matrix.features }}
+      - name: cargo test --all-features
+        run: cargo test -p soroban-explorer-contract --all-features
         working-directory: contracts/explorer
 
-      - name: cargo doc
-        run: cargo doc --no-deps ${{ matrix.features }}
+      - name: cargo doc --all-features
+        run: cargo doc --no-deps --all-features
         env:
           RUSTDOCFLAGS: "-D warnings"
 
-  # ── 3. Indexer Matrix ────────────────────────────────────────────────────────
+  # ── 3. Indexer ────────────────────────────────────────────────────────────────
   indexer:
-    name: Indexer (Node ${{ matrix.node }})
+    name: Indexer
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [18, 20, 22]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 20
 
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
           path: indexer/node_modules
-          key: indexer-${{ matrix.node }}-${{ hashFiles('indexer/package-lock.json') }}
-          restore-keys: indexer-${{ matrix.node }}-
+          key: indexer-20-${{ hashFiles('indexer/package-lock.json') }}
+          restore-keys: indexer-20-
 
       - name: Install
         run: npm ci
@@ -168,8 +157,7 @@ jobs:
         run: npm test
         working-directory: indexer
 
-      - name: Test with coverage thresholds (Node 22 only)
-        if: matrix.node == 22
+      - name: Test with coverage thresholds
         run: >
           node --test
           --experimental-test-coverage
@@ -180,27 +168,23 @@ jobs:
           test/**/*.test.js
         working-directory: indexer
 
-  # ── 4. Frontend Matrix ───────────────────────────────────────────────────────
+  # ── 4. Frontend ───────────────────────────────────────────────────────────────
   frontend:
-    name: Frontend (Node ${{ matrix.node }})
+    name: Frontend
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [20, 22]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 20
 
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: frontend-${{ matrix.node }}-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: frontend-${{ matrix.node }}-
+          key: frontend-20-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: frontend-20-
 
       - name: Install
         run: npm ci
