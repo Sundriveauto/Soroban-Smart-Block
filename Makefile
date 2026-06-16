@@ -1,5 +1,6 @@
 .PHONY: build test deploy indexer frontend clean \
-	docker-up docker-down docker-build docker-logs docker-test docker-staging docker-prod
+	docker-up docker-down docker-build docker-logs docker-test docker-staging docker-prod \
+	e2e e2e-setup e2e-test e2e-api e2e-chaos e2e-property e2e-playwright e2e-k6 e2e-full
 
 # ── Contract ──────────────────────────────────────────────────────────────────
 build:
@@ -84,3 +85,30 @@ dev:
 clean:
 	cargo clean
 	rm -rf frontend/dist
+
+# ── E2E Tests ──────────────────────────────────────────────────────────────────
+e2e-setup:
+	cd e2e && npm install && bash setup.sh
+
+e2e-test:
+	cd e2e && npm run test:e2e
+
+e2e-api:
+	cd e2e && npm run test:api
+
+e2e-chaos:
+	cd e2e && npm run test:chaos
+
+e2e-property:
+	cd e2e && npm run test:property
+
+e2e-playwright:
+	cd e2e && npm run test:playwright
+
+e2e-k6:
+	cd e2e && npm run test:k6
+
+e2e-full:
+	cd e2e && npm run test:full
+
+e2e: e2e-setup e2e-test

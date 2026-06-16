@@ -1,0 +1,353 @@
+name: E2E — Nightly Advanced Tests
+
+on:
+  schedule:
+    # Every night at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      spike_test:
+        description: "Run spike test (50s)"
+        required: false
+        type: boolean
+        default: true
+      soak_test:
+        description: "Run soak test (4h)"
+        required: false
+        type: boolean
+        default: false
+      synthetic:
+        description: "Run synthetic monitoring"
+        required: false
+        type: boolean
+        default: true
+      percy:
+        description: "Run visual regression"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: e2e-nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ── Setup ───────────────────────────────────────────────────────────────────
+  setup:
+    name: Setup E2E Environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache e2e node_modules
+        uses: actions/cache@v4
+        with:
+          path: e2e/node_modules
+          key: e2e-20-${{ hashFiles('e2e/package-lock.json') }}
+          restore-keys: e2e-20-
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        working-directory: e2e
+
+  # ── Spike Test ────────────────────────────────────────────────────────────
+  spike-test:
+    name: k6 Spike Test (0→2000 req/s)
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event_name == 'schedule' || github.event.inputs.spike_test == 'true'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: soroban
+          POSTGRES_PASSWORD: soroban_secret
+          POSTGRES_DB: soroban_explorer
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Start indexer
+        run: |
+          npm install
+          npm start > indexer.log 2>&1 &
+          sleep 5
+        working-directory: indexer
+        env:
+          DATABASE_URL: postgres://soroban:soroban_secret@localhost:5432/soroban_explorer
+          NODE_ENV: test
+
+      - name: Run spike test
+        run: cd e2e && k6 run test/load/spike.js
+        env:
+          INDEXER_URL: http://localhost:3001
+          K6_RESULTS_DIR: ./k6-results
+
+      - name: Upload spike test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-spike-results
+          path: e2e/k6-results/
+          retention-days: 30
+
+      - name: Comment PR on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **E2E Spike Test Failed**\n\nThe system could not handle spike load (0→2000 req/s). See [test results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+            })
+
+  # ── Soak Test ────────────────────────────────────────────────────────────
+  soak-test:
+    name: k6 Soak Test (4 hours @ 200 req/s)
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event_name == 'schedule' || github.event.inputs.soak_test == 'true'
+    timeout-minutes: 300
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: soroban
+          POSTGRES_PASSWORD: soroban_secret
+          POSTGRES_DB: soroban_explorer
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Start indexer
+        run: |
+          npm install
+          npm start > indexer.log 2>&1 &
+          sleep 5
+        working-directory: indexer
+        env:
+          DATABASE_URL: postgres://soroban:soroban_secret@localhost:5432/soroban_explorer
+          NODE_ENV: test
+
+      - name: Run soak test (4 hours)
+        run: cd e2e && k6 run test/load/soak.js
+        env:
+          INDEXER_URL: http://localhost:3001
+          K6_RESULTS_DIR: ./k6-results
+
+      - name: Upload soak test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-soak-results
+          path: e2e/k6-results/
+          retention-days: 30
+
+      - name: Check for memory leaks
+        if: always()
+        run: |
+          echo "## Memory Stability Check"
+          docker stats --no-stream soroban-indexer || true
+
+  # ── Synthetic Monitoring ───────────────────────────────────────────────────
+  synthetic:
+    name: Synthetic Event Monitoring (Production)
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event_name == 'schedule' || github.event.inputs.synthetic == 'true'
+    env:
+      SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+      NETWORK: testnet
+      ITERATIONS: 10
+      SLA_SECONDS: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache e2e node_modules
+        uses: actions/cache@v4
+        with:
+          path: e2e/node_modules
+          key: e2e-20-${{ hashFiles('e2e/package-lock.json') }}
+
+      - name: Run synthetic event monitoring
+        run: npm run test:synthetic
+        working-directory: e2e
+        env:
+          EXPLORER_URL: https://explorer.soroban.cool # Or your staging URL
+
+      - name: Upload synthetic results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-results
+          path: e2e/synthetic-results/
+          retention-days: 30
+
+  # ── Visual Regression (Percy) ──────────────────────────────────────────────
+  percy:
+    name: Visual Regression (Percy)
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event_name == 'schedule' || github.event.inputs.percy == 'true'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: soroban
+          POSTGRES_PASSWORD: soroban_secret
+          POSTGRES_DB: soroban_explorer
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache e2e node_modules
+        uses: actions/cache@v4
+        with:
+          path: e2e/node_modules
+          key: e2e-20-${{ hashFiles('e2e/package-lock.json') }}
+
+      - name: Start indexer
+        run: |
+          npm install
+          npm start > indexer.log 2>&1 &
+          sleep 5
+        working-directory: indexer
+        env:
+          DATABASE_URL: postgres://soroban:soroban_secret@localhost:5432/soroban_explorer
+          NODE_ENV: test
+
+      - name: Start frontend
+        run: |
+          npm install
+          npm run dev > frontend.log 2>&1 &
+          sleep 5
+        working-directory: frontend
+
+      - name: Run Percy visual tests
+        run: npm run test:visual
+        working-directory: e2e
+        env:
+          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+          FRONTEND_URL: http://localhost:5173
+
+      - name: Upload Percy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: percy-report
+          path: e2e/percy-report/
+          retention-days: 30
+
+  # ── Report Summary ─────────────────────────────────────────────────────────
+  report:
+    name: E2E Results Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [spike-test, soak-test, synthetic, percy]
+    steps:
+      - name: Check test results
+        run: |
+          echo "## 🧪 E2E Nightly Test Summary"
+          echo ""
+          echo "| Test | Status |"
+          echo "|------|--------|"
+          echo "| Spike Test | ${{ needs.spike-test.result }} |"
+          echo "| Soak Test | ${{ needs.soak-test.result }} |"
+          echo "| Synthetic | ${{ needs.synthetic.result }} |"
+          echo "| Percy | ${{ needs.percy.result }} |"
+
+      - name: Slack notification on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "❌ E2E Nightly Tests Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*E2E Nightly Tests Failed*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Results>"
+                  }
+                }
+              ]
+            }
+
+      - name: Slack notification on success
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "✅ E2E Nightly Tests Passed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*E2E Nightly Tests Passed* ✨"
+                  }
+                }
+              ]
+            }
