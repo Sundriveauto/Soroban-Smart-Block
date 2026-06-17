@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import type { DecodedEvent } from "../api";
 import EventTable from "../components/EventTable";
+import ExportButton from "../components/ExportButton";
 import { useEventStream } from "../hooks/useEventStream";
 
 const FUNCTIONS = ["", "swap", "transfer", "mint", "burn", "stake", "unstake", "wrap_native", "unwrap_native"];
@@ -77,6 +78,14 @@ export default function Home() {
             {FUNCTIONS.map(f => <option key={f} value={f}>{f || "All"}</option>)}
           </select>
         </div>
+
+        <ExportButton
+          target="events"
+          params={{
+            fn:   fnFilter || undefined,
+            type: txType !== "all" ? txType : undefined,
+          }}
+        />
       </div>
 
       <div className="card">

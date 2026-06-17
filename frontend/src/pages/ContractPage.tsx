@@ -23,6 +23,7 @@ import QuorumFreezeBadge from "../components/QuorumFreezeBadge";
 import RwaMetadataDisplay from "../components/RwaMetadataDisplay";
 import SourceVerificationBadge from "../components/SourceVerificationBadge";
 import StateDiffTimeline from "../components/StateDiffTimeline";
+import ExportButton from "../components/ExportButton";
 
 // Demo source shown when no verified source is uploaded
 const DEMO_SOURCE = `// Verified source not yet uploaded for this contract.
@@ -394,7 +395,10 @@ export default function ContractPage() {
             </div>
           )}
 
-          <h3>Recent Events</h3>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <h3 style={{ margin: 0 }}>Recent Events</h3>
+            <ExportButton target="events" params={{ contract: id }} />
+          </div>
           <div className="card">
             {evLoading ? (
               <p style={{ color: "var(--muted)" }}>Loading…</p>
