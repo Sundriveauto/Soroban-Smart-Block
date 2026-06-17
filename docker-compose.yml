@@ -46,6 +46,35 @@ services:
     networks:
       - soroban-net
 
+  # ── Redis (L2 distributed cache) ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: soroban-redis
+    restart: unless-stopped
+    profiles: ["dev", "test", "staging", "prod"]
+    # RDB snapshots every 5 min (if ≥1 key changed) + AOF for crash recovery
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --save 300 1
+      --save 60 1000
+      --maxmemory ${REDIS_MAXMEM:-256mb}
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+    networks:
+      - soroban-net
+
   # ── Indexer ───────────────────────────────────────────────────────────────
   indexer:
     container_name: soroban-indexer
@@ -59,10 +88,13 @@ services:
         required: true
     environment:
       DATABASE_URL: ${INDEXER_DATABASE_URL:-postgres://${POSTGRES_USER:-soroban}:${POSTGRES_PASSWORD:-soroban_secret}@postgres:5432/${POSTGRES_DB:-soroban_explorer}}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       PORT: ${INDEXER_PORT:-3001}
       NODE_ENV: ${NODE_ENV:-development}
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${INDEXER_PORT:-3001}/health || exit 1"]
@@ -137,3 +169,4 @@ networks:
 
 volumes:
   pgdata:
+  redisdata:
