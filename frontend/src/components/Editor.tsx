@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import * as Monaco from 'monaco-editor';
+import { editor } from 'monaco-editor';
 
 interface EditorProps {
   file: {
@@ -12,12 +12,12 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ file, onChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   useEffect(() => {
     if (containerRef.current) {
       if (!editorRef.current) {
-        editorRef.current = Monaco.editor.create(containerRef.current, {
+        editorRef.current = editor.create(containerRef.current, {
           value: file.content,
           language: file.language,
           theme: 'vs-dark',
@@ -30,7 +30,7 @@ const Editor: React.FC<EditorProps> = ({ file, onChange }) => {
         });
       } else {
         editorRef.current.setValue(file.content);
-        Monaco.editor.setModelLanguage(editorRef.current.getModel()!, file.language);
+        editor.setModelLanguage(editorRef.current.getModel()!, file.language);
       }
     }
 
