@@ -1,0 +1,26 @@
+{
+  "name": "soroban-explorer-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:api": "node --test test/api/integration.test.js",
+    "test:chaos": "node --test test/chaos/fault-injection.test.js",
+    "test:property": "vitest run",
+    "test:playwright": "playwright test",
+    "test:playwright:debug": "playwright test --debug",
+    "test:k6": "k6 run test/load/baseline.js && k6 run test/load/spike.js && k6 run test/load/soak.js",
+    "test:synthetic": "node test/synthetic/producer.js",
+    "test:visual": "percy exec -- playwright test test/visual/percy.spec.ts",
+    "test:e2e": "npm run test:api && npm run test:chaos && npm run test:property && npm run test:playwright",
+    "test:full": "npm run test:e2e && npm run test:synthetic && npm run test:visual && npm run test:k6"
+  },
+  "dependencies": {
+    "@percy/playwright": "^1.0.0",
+    "@playwright/test": "^1.50.0",
+    "@stellar/stellar-sdk": "12.3.0",
+    "fast-check": "^3.0.0",
+    "node-fetch": "^3.3.2",
+    "vitest": "^4.1.9"
+  }
+}

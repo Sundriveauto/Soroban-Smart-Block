@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Test artifacts
 test-results/
@@ -11,6 +10,8 @@ coverage/
 # Load testing
 k6-results/
 *.json
+!package.json
+!package-lock.json
 
 # Logs
 *.log
