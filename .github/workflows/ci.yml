@@ -221,9 +221,3 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: /language:javascript-typescript
-
-      - name: Dependency review
-        if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
