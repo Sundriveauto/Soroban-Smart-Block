@@ -14,8 +14,7 @@ const ERROR_DICTIONARY: Record<string, string> = {
   "109": "Execution Failed: Runtime Panic",
   "110": "Execution Failed: Invalid Operation",
   // Issue #134: protocol-level block compute exhaustion
-  tx_resource_limit_exceeded:
-    "Transaction Dropped: Block Compute Capacity Maxed Out",
+  tx_resource_limit_exceeded: "Transaction Dropped: Block Compute Capacity Maxed Out",
 };
 
 export interface ParsedError {
@@ -45,8 +44,7 @@ export function translateError(error: string): ParsedError {
 
   if (codeMatch) {
     const [, category, code] = codeMatch;
-    const message =
-      ERROR_DICTIONARY[code] || `Execution Failed: Unknown Error (${code})`;
+    const message = ERROR_DICTIONARY[code] || `Execution Failed: Unknown Error (${code})`;
     return { code, category, message, raw: error };
   }
 
@@ -58,9 +56,7 @@ export function translateError(error: string): ParsedError {
   };
 }
 
-export function getErrorSeverity(
-  code: string,
-): "critical" | "warning" | "info" {
+export function getErrorSeverity(code: string): "critical" | "warning" | "info" {
   const criticalCodes = ["102", "105", "107"];
   const warningCodes = ["103", "104", "108", "109"];
 
