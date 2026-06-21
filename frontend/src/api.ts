@@ -31,7 +31,7 @@ export interface FeeBumpInfo {
   actual_caller: string | null;
 }
 
-// Issue #177: Factory deployment tracking
+Factory deployment tracking
 export interface FactoryDeploymentContract {
   contractId: string;
   wasmHash: string | null;
@@ -44,7 +44,7 @@ export interface FactoryDeploymentTree {
   contracts: FactoryDeploymentContract[];
 }
 
-// Issue #164: CAP-0080 ZK host function types
+CAP-0080 ZK host function types
 export interface ZkHostCall {
   fn_name: string;
   curve: "BN254" | "BLS12-381";
@@ -76,19 +76,19 @@ export interface DecodedEvent {
   description: string;
   raw_topics: string[];
   tx_hash?: string;
-  // Issue #40: Soroban resource gas costs
+  Soroban resource gas costs
   cpu_instructions?: number;
   mem_bytes?: number;
   fee_charged?: number;
-  // Issue #50: state-bloat risk
+  state-bloat risk
   is_high_bloat_risk?: boolean;
-  // Issue #51: upgrade lineage
+  upgrade lineage
   upgrade_info?: { type: "upgrade"; oldHash: string; newHash: string };
-  // Issue #52: storage tier breakdown
+  storage tier breakdown
   storage_tiers?: StorageTiers;
-  // Issue #74: clawback compliance flag
+  clawback compliance flag
   is_clawback?: boolean;
-  // Issue #75: AMM swap path hops ["10 USDC", "9.1 EURC", "5.2 XLM"]
+  AMM swap path hops ["10 USDC", "9.1 EURC", "5.2 XLM"]
   swap_path?: string[];
   // Protocol 26: TTL extension host function data
   ttl_extension?: {
@@ -97,9 +97,9 @@ export interface DecodedEvent {
     min_extension: number | null;
     max_extension: number | null;
   };
-  // Issue #169: fee-bump chain of custody
+  fee-bump chain of custody
   fee_bump?: FeeBumpInfo | null;
-  // Issue #167: state archival / restoration info (RestoreFootprintOp)
+  state archival / restoration info (RestoreFootprintOp)
   archival_info?: {
     isRestoreOp: boolean;
     revivedKeys: {
@@ -113,13 +113,13 @@ export interface DecodedEvent {
     keyCount: number;
     feePaid: number | null;
   } | null;
-  // Issue #191: CAP-0080 ZK host function telemetry (Protocol 26)
+  CAP-0080 ZK host function telemetry (Protocol 26)
   zk_host_calls?: { calls: ZkHostCall[]; delta: ZkCostDelta | null };
   // Heuristic fallback params: present when no ABI is registered
   heuristic_params?: HeuristicParam[];
   // SAC implicit side-effect (auto-created account or trustline)
   sac_side_effect?: "account_created" | "trustline_opened";
-  // Issue #177: Factory deployment trace
+  Factory deployment trace
   factory_deployment?: FactoryDeploymentTree;
 }
 
@@ -199,7 +199,7 @@ export interface BurnAlert {
   flaggedAt: number;
 }
 
-// Issue #38: paginated contract transaction response
+paginated contract transaction response
 export interface ContractTransactionsResponse {
   data: DecodedEvent[];
   pagination: {
@@ -211,7 +211,7 @@ export interface ContractTransactionsResponse {
   };
 }
 
-// Issue #142: contract dependency graph
+contract dependency graph
 export interface GraphNode3D {
   id: string;
   callCount: number;
@@ -248,7 +248,7 @@ export interface PrivilegedRole {
   updated_at: string;
 }
 
-// Issue #135: source verification signature
+source verification signature
 export interface SourceVerification {
   signer: string;
   signature: string;
@@ -257,7 +257,7 @@ export interface SourceVerification {
   submitted_at: string;
 }
 
-// Issue #140: storage state diff entry
+storage state diff entry
 export interface StateDiff {
   ledger: number;
   tx_hash: string | null;
@@ -269,7 +269,7 @@ export interface StateDiff {
   created_at: string;
 }
 
-// Issue #117: sub-invocation record
+sub-invocation record
 export interface SubInvocation {
   id: number;
   parent_tx_hash: string;
@@ -280,7 +280,7 @@ export interface SubInvocation {
   ledger: number;
 }
 
-// Issue #118: transaction status
+transaction status
 export interface TxStatusResponse {
   tx_hash: string;
   status: "pending" | "success" | "failed";
@@ -288,7 +288,7 @@ export interface TxStatusResponse {
   error?: string | null;
 }
 
-// Issue #165: Live TTL status for contract instance and code entries
+Live TTL status for contract instance and code entries
 export interface ContractTTL {
   contract_id: string;
   current_ledger: number;
@@ -364,19 +364,19 @@ export const api = {
   networkComparison: (id: string) => get<NetworkComparisonResult>(`/contracts/${id}/network-comparison`),
   addressGraph: (id: string) => get<AddressGraphData>(`/contracts/${id}/address-graph`),
 
-  // Issue #117: sub-invocations for a transaction
+  sub-invocations for a transaction
   subInvocations: (txHash: string) => get<SubInvocation[]>(`/transactions/${txHash}/sub-invocations`),
   // Events where contract appears directly OR as sub-invocation
   eventsDeep: (contractId: string, page = 1) =>
     get<DecodedEvent[]>(`/v1/contracts/${contractId}/events-deep?page=${page}`),
 
-  // Issue #118: transaction status (polling fallback; SSE via useTxStatus hook)
+  transaction status (polling fallback; SSE via useTxStatus hook)
   txStatus: (txHash: string) => get<TxStatusResponse>(`/transactions/${txHash}/status`),
 
-  // Issue #86: Circuit breaker status
+  Circuit breaker status
   circuitBreakerStatus: (id: string) => get<CircuitBreakerStatus>(`/contracts/${id}/circuit-breaker`),
 
-  // Issue #81: RWA token metadata
+  RWA token metadata
   rwaMetadata: (id: string) => get<RwaMetadata>(`/contracts/${id}/rwa-metadata`),
 
   downloadAbi: async (id: string) => {
@@ -393,7 +393,7 @@ export const api = {
     URL.revokeObjectURL(url);
   },
 
-  // Issue #135: multi-sig source verification
+  multi-sig source verification
   sourceVerifications: (id: string, wasmHash?: string) => {
     const q = wasmHash ? `?wasm_hash=${encodeURIComponent(wasmHash)}` : "";
     return get<SourceVerification[]>(`/contracts/${id}/source-verifications${q}`);
@@ -416,19 +416,19 @@ export const api = {
       return r.json();
     }),
 
-  // Issue #165: live TTL status (instance + code expiration ledgers)
+  live TTL status (instance + code expiration ledgers)
   contractTTL: (id: string) => get<ContractTTL>(`/contracts/${id}/ttl`),
 
-  // Issue #140: state-diff timeline
+  state-diff timeline
   stateDiffs: (id: string, key?: string) => {
     const q = key ? `?key=${encodeURIComponent(key)}` : "";
     return get<StateDiff[]>(`/contracts/${id}/state-diffs${q}`);
   },
 
-  // Issue #142: global contract dependency graph
+  global contract dependency graph
   contractGraph: (limit = 500) => get<ContractGraphData>(`/contract-graph?limit=${limit}`),
 
-  // Issue #172: CAP-0077 quorum freeze status
+  CAP-0077 quorum freeze status
   quorumFreeze: (id: string) =>
     get<{
       is_frozen: boolean;
@@ -444,7 +444,7 @@ export const api = {
       types: SpecType[];
     }>(`/contracts/${id}/spec-full`),
 
-  // Issue #211: Batch Multi-Call endpoints
+  Batch Multi-Call endpoints
   batchSimulate: (calls: BatchCall[], sourceAccount?: string) =>
     fetch(`${BASE}/batch/simulate`, {
       method: "POST",

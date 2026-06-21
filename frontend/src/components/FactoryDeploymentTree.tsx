@@ -1,4 +1,4 @@
-// Issue #177 — Factory Deployment Trace: Multi-Contract Composite Deployments
+Factory Deployment Trace: Multi-Contract Composite Deployments
 
 import { Link } from "react-router-dom";
 

@@ -163,18 +163,18 @@ export default function ContractPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Issue #84: SEP-49 migration pending banner */}
+      {/* SEP-49 migration pending banner */}
       {migrationStatus?.pending && migrationStatus.upgradedAtLedger != null && (
         <MigrationBanner upgradedAtLedger={migrationStatus.upgradedAtLedger} />
       )}
 
-      {/* Issue #86: Circuit breaker status banner */}
+      {/* Circuit breaker status banner */}
       <CircuitBreakerStatus contractId={id} />
 
-      {/* Issue #172: CAP-0077 quorum freeze security warning */}
+      {/* CAP-0077 quorum freeze security warning */}
       <QuorumFreezeBadge contractId={id} />
 
-      {/* Issue #81: RWA metadata display */}
+      {/* RWA metadata display */}
       <RwaMetadataDisplay contractId={id} />
 
       {/* Header */}
@@ -376,7 +376,7 @@ export default function ContractPage() {
             </details>
           )}
 
-          {/* Issue #72: WASM binary hash calculator */}
+          {/* WASM binary hash calculator */}
           <details
             style={{
               background: "var(--surface)",
@@ -401,7 +401,7 @@ export default function ContractPage() {
             </div>
           </details>
 
-          {/* Issue #165: Live TTL expiration progress bars */}
+          {/* Live TTL expiration progress bars */}
           <TTLProgressBar contractId={id} />
 
           {meta.functions.length > 0 && (
@@ -413,7 +413,7 @@ export default function ContractPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span className="badge">{f.name}</span>
                       <span style={{ color: "var(--muted)", flex: 1 }}>{f.description}</span>
-                      {/* Issue #120: SDK snippet copy button */}
+                      {/* SDK snippet copy button */}
                       <button
                         onClick={() => setSnippetFn(snippetFn === f.name ? null : f.name)}
                         style={{
@@ -471,7 +471,7 @@ export default function ContractPage() {
         </div>
       )}
 
-      {/* Tab: Simulate — Issue #46 */}
+      {/* Tab: Simulate — */}
       {tab === "simulate" && (
         <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <h3 style={{ fontSize: 14 }}>Simulate Contract Call</h3>
@@ -494,19 +494,19 @@ export default function ContractPage() {
         </div>
       )}
 
-      {/* Tab: Invocation Flow — Issue #47 */}
+      {/* Tab: Invocation Flow — */}
       {tab === "flow" && <InvocationFlowChart root={(meta as any).invocation_tree ?? DEMO_TREE} />}
 
       {/* Tab: Privileged Roles */}
       {tab === "roles" && <PrivilegedRoles contractId={id} />}
 
-      {/* Tab: Network Comparison — Issue #124 */}
+      {/* Tab: Network Comparison — */}
       {tab === "networks" && <NetworkComparison contractId={id} />}
 
-      {/* Tab: Address Connection Graph — Issue #126 */}
+      {/* Tab: Address Connection Graph — */}
       {tab === "graph" && <AddressConnectionGraph contractId={id} />}
 
-      {/* Tab: State-Diff Timeline — Issue #140 */}
+      {/* Tab: State-Diff Timeline — */}
       {tab === "state-diff" && <StateDiffTimeline contractId={id} />}
     </div>
   );

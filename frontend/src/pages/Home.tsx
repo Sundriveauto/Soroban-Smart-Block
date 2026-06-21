@@ -8,7 +8,7 @@ import { useEventStream } from "../hooks/useEventStream";
 
 const FUNCTIONS = ["", "swap", "transfer", "mint", "burn", "stake", "unstake", "wrap_native", "unwrap_native"];
 
-// Issue #48 — transaction type filter
+transaction type filter
 type TxType = "all" | "soroban" | "classic";
 
 const TYPE_LABELS: { key: TxType; label: string; title: string }[] = [
@@ -45,7 +45,7 @@ export default function Home() {
       }),
   });
 
-  // Issue #39 — invalidate the event list when a live event arrives on page 1
+  invalidate the event list when a live event arrives on page 1
   const handleLiveEvent = useCallback(
     (ev: DecodedEvent) => {
       if (page === 1 && (!fnFilter || ev.function === fnFilter)) {
@@ -73,7 +73,7 @@ export default function Home() {
           flexWrap: "wrap",
         }}
       >
-        {/* Issue #48 — type toggle */}
+        {/* type toggle */}
         <div
           style={{
             display: "flex",

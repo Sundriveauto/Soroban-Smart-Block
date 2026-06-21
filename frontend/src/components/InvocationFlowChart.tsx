@@ -1,4 +1,4 @@
-// Issue #47 — Cross-contract invocation visual flow chart (pure SVG/CSS, no deps)
+Cross-contract invocation visual flow chart (pure SVG/CSS, no deps)
 
 export interface InvocationNode {
   contract: string;

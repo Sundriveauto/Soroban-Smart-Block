@@ -1,14 +1,6 @@
 {
   "name": "Soroban Smart Block Explorer",
   "image": "mcr.microsoft.com/devcontainers/rust:1",
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
-    },
-    "ghcr.io/devcontainers/features/postgres:1": {
-      "version": "16"
-    }
-  },
   "forwardPorts": [5173, 3001, 5432],
   "portsAttributes": {
     "5173": {
@@ -34,6 +26,6 @@
       ]
     }
   },
-  "postCreateCommand": "rustup target add wasm32-unknown-unknown && npm install && npm --prefix indexer ci && npm --prefix frontend ci && cargo fetch",
-  "postStartCommand": "npm run setup -- --non-interactive || echo 'Setup incomplete - run npm run setup manually when ready'"
+  "postCreateCommand": "echo 'Skipping automated setup in devcontainer; run npm install and cargo fetch manually if needed.'",
+  "postStartCommand": "echo 'Container started. Run `npm run setup -- --non-interactive` if required.'"
 }

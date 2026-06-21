@@ -1,5 +1,5 @@
 /**
- * Issue #164 — ZkCostDelta
+ * ZkCostDelta
  * Shows CAP-0080 ZK host function calls and the CPU cost savings
  * (native Protocol 26 vs legacy Wasm-side micro-allocations).
  */

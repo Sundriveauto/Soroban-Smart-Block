@@ -1,5 +1,5 @@
 /**
- * Issue #39 — useEventStream
+ * useEventStream
  * Connects to the backend WebSocket and calls onEvent for each incoming event.
  */
 import { useEffect } from "react";

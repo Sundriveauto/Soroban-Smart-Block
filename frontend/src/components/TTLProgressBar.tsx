@@ -1,5 +1,5 @@
 /**
- * TTLProgressBar — Issue #165
+ * TTLProgressBar —
  * Renders a labelled progress bar for a single TTL entry (instance or code).
  * Shows remaining ledgers, estimated time, and expiration ledger number.
  */

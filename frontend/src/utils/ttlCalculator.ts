@@ -1,6 +1,6 @@
 /**
  * Contract TTL (Time-To-Live) Calculator
- * Issue #50: Contract TTL Status Tracker
+ * Contract TTL Status Tracker
  */
 
 export interface TTLMetrics {

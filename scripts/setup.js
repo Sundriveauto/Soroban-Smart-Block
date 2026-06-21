@@ -44,7 +44,6 @@ async function run() {
     // pg not available - DB operations will be skipped
   }
   const { runAllChecks } = (await importSafe("../indexer/src/doctor-lib.js")) || {};
-  const { installHooks } = (await importSafe("./install-hooks.js")) || {};
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -198,15 +197,6 @@ async function run() {
 
     console.log("  Fetching Rust cargo dependencies...");
     depPass = executeCommand("cargo fetch") && depPass;
-
-    if (installHooks) {
-      try {
-        installHooks();
-        console.log(`  ${green("✓")} Git hooks installed`);
-      } catch (err) {
-        console.log(`  ${yellow("⚠")} Git hooks installation failed: ${err.message}`);
-      }
-    }
 
     if (depPass) {
       console.log(`  ${green("✓")} Dependencies installed successfully`);

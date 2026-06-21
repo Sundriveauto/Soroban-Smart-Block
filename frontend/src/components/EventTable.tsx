@@ -145,7 +145,7 @@ function TTLExtensionBadge({ ext }: { ext: NonNullable<DecodedEvent["ttl_extensi
   );
 }
 
-/** Issue #177: Inline badge for factory deployment events. */
+/** Inline badge for factory deployment events. */
 function FactoryDeploymentBadge({ deployment }: { deployment: NonNullable<DecodedEvent["factory_deployment"]> }) {
   return (
     <span

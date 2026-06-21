@@ -80,22 +80,22 @@ export default function EventPage() {
       {/* Fee-Bump sponsorship banner */}
       {ev.fee_bump && <FeeSponsorBanner feeBump={ev.fee_bump} />}
 
-      {/* Issue #177 — Factory Deployment Trace */}
+      {/* Factory Deployment Trace */}
       {ev.factory_deployment && <FactoryDeploymentTree deployment={ev.factory_deployment} />}
 
-      {/* Issue #40 — Resource Consumption breakdown */}
+      {/* Resource Consumption breakdown */}
       <ResourceCosts event={ev} />
 
-      {/* Issue #164 — CAP-0080 ZK host function cost delta */}
+      {/* CAP-0080 ZK host function cost delta */}
       {ev.zk_host_calls && <ZkCostDelta calls={ev.zk_host_calls.calls} delta={ev.zk_host_calls.delta} />}
 
-      {/* Issue #125 — Gas-Limit Alert Flag */}
+      {/* Gas-Limit Alert Flag */}
       <GasLimitAlert event={ev} />
 
-      {/* Issue #52 — Storage tier breakdown */}
+      {/* Storage tier breakdown */}
       {ev.storage_tiers && <StorageTierBreakdown tiers={ev.storage_tiers} />}
 
-      {/* Issue #167 — State restoration (RestoreFootprintOp) */}
+      {/* State restoration (RestoreFootprintOp) */}
       {ev.archival_info?.isRestoreOp && <RestoreFootprintPanel restore={ev.archival_info} />}
     </div>
   );

@@ -1,5 +1,5 @@
 /**
- * Issue #123 — Developer Workspace View
+ * Developer Workspace View
  * Unified multi-tab layout: source code, available functions, and transaction history.
  */
 import { useState } from "react";

@@ -1,6 +1,6 @@
 /**
  * SDK Snippet Generator Component
- * Issue #51: Client SDK Snippet Generator Utility
+ * Client SDK Snippet Generator Utility
  */
 
 import React, { useState } from "react";

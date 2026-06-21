@@ -1,4 +1,4 @@
-// Issue #45 — Syntax-highlighted Rust source viewer (no external deps, XSS-safe)
+Syntax-highlighted Rust source viewer (no external deps, XSS-safe)
 
 interface Props {
   source: string;

@@ -1,6 +1,6 @@
 /**
  * Contract TTL Status Indicator Component
- * Issue #50: Contract TTL Status Tracker
+ * Contract TTL Status Tracker
  */
 
 import React from "react";

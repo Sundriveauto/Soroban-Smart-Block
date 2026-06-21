@@ -1,5 +1,5 @@
 /**
- * Issue #174 — WASM Execution Call Stack Visualizer
+ * WASM Execution Call Stack Visualizer
  *
  * Renders the expandable "Execution Trace" tab in the transaction detail view,
  * showing the exact call hierarchy with CPU instruction costs per step.

@@ -1,5 +1,5 @@
 /**
- * Issue #135 — Multi-Signature Source Code Verification Badge
+ * Multi-Signature Source Code Verification Badge
  *
  * Displays a security badge on the Source Code tab showing how many
  * independent developers have verified the compiled Rust source matches

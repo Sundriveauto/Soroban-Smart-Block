@@ -1,6 +1,6 @@
 /**
  * Batch Call Flow Chart Editor
- * Issue #211: Visual flow-chart editor with drag-and-drop call nodes
+ * Visual flow-chart editor with drag-and-drop call nodes
  */
 
 import React, { useState, useCallback } from "react";

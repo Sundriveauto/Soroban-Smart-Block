@@ -1,5 +1,5 @@
 /**
- * Issue #140 — Visual State-Diff Timeline for Smart Contracts
+ * Visual State-Diff Timeline for Smart Contracts
  *
  * Renders an interactive timeline slider that lets users scrub through
  * historical ContractDataEntry mutations block-by-block.

@@ -1,6 +1,6 @@
 /**
  * Error State Explainer Component
- * Issue #49: Human-Friendly Error State Explainer UI
+ * Human-Friendly Error State Explainer UI
  */
 
 import React from "react";

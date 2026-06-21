@@ -1,5 +1,5 @@
 /**
- * Issue #124 — Network Comparison Tool
+ * Network Comparison Tool
  * Shows whether a contract is deployed on Mainnet, Testnet, and Futurenet,
  * highlighting version/WASM hash mismatches.
  */

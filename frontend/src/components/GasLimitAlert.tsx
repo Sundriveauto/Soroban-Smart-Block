@@ -1,5 +1,5 @@
 /**
- * Issue #125 — Gas-Limit Alert Flag
+ * Gas-Limit Alert Flag
  * Flags transactions consuming >80% of the network's max allowed gas limits.
  * Soroban network limits: 100M CPU instructions, 40MB memory per transaction.
  */

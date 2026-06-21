@@ -1,6 +1,6 @@
 /**
  * Batch Multi-Call Constructor Interface
- * Issue #211: Add batch multi-call constructor interface improvements
+ * Add batch multi-call constructor interface improvements
  */
 
 import React, { useState, useCallback } from "react";

@@ -1,5 +1,5 @@
 /**
- * Issue #126 — Interactive Address Connection Graph
+ * Interactive Address Connection Graph
  * Visual map of how a contract interacts with external addresses and other contracts.
  * Uses Cytoscape.js for interactive node-based graph rendering.
  */

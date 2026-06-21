@@ -1,5 +1,5 @@
 /**
- * Issue #40 — ResourceCosts
+ * ResourceCosts
  * Displays Soroban resource consumption breakdown for a single event.
  */
 import type { DecodedEvent } from "../api";

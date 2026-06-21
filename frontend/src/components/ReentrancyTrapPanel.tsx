@@ -1,5 +1,5 @@
 /**
- * Issue #175 — Reentrancy Guard Trap & Deep Call-Stack Exception Panel
+ * Reentrancy Guard Trap & Deep Call-Stack Exception Panel
  *
  * Displays a prominent developer warning when a failed transaction contains
  * a reentrancy violation or maximum call depth violation, including the

@@ -1,6 +1,6 @@
 /**
  * Batch Multi-Call Types and Interfaces
- * Issue #211: Add batch multi-call constructor interface improvements
+ * Add batch multi-call constructor interface improvements
  */
 
 export type ExecutionMode = "sequential" | "parallel" | "hybrid" | "batch";

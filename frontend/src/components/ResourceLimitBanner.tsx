@@ -1,5 +1,5 @@
 /**
- * Issue #134 — Resource Limit Exceeded Banner
+ * Resource Limit Exceeded Banner
  *
  * Displays an explicit error layout when a transaction was dropped because
  * the block's total compute capacity was maxed out.

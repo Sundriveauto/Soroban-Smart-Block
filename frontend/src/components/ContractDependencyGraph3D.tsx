@@ -1,5 +1,5 @@
 /**
- * Issue #142 — 3D Live Contract Dependency Graph
+ * 3D Live Contract Dependency Graph
  *
  * Renders a network-wide 3D force-directed graph of cross-contract calls.
  * Loads the initial snapshot from GET /api/contract-graph, then streams

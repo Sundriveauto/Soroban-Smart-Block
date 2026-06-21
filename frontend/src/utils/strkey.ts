@@ -1,7 +1,7 @@
 /**
  * strkey.ts — Stellar strkey address utilities for the frontend.
  *
- * Handles cross-chain interoperability (Issue #170):
+ * Handles cross-chain interoperability
  *  - Detects G... (ed25519 account), M... (muxed account), C... (contract) addresses
  *  - Resolves M... muxed addresses to their base G... account for routing
  */

@@ -1,5 +1,5 @@
 /**
- * Issue #176 — Archived / Evicted Keys Tab
+ * Archived / Evicted Keys Tab
  *
  * Displays the "Archived / Evicted Keys" tab in the contract storage state
  * dashboard, listing persistent data entries that have expired off-chain

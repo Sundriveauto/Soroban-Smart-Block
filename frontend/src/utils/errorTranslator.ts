@@ -1,6 +1,6 @@
 /**
  * Error Code to Human-Friendly Message Mapper
- * Issue #49: Human-Friendly Error State Explainer UI
+ * Human-Friendly Error State Explainer UI
  */
 
 const ERROR_DICTIONARY: Record<string, string> = {
@@ -13,7 +13,7 @@ const ERROR_DICTIONARY: Record<string, string> = {
   "108": "Execution Failed: Assertion Failed",
   "109": "Execution Failed: Runtime Panic",
   "110": "Execution Failed: Invalid Operation",
-  // Issue #134: protocol-level block compute exhaustion
+  protocol-level block compute exhaustion
   tx_resource_limit_exceeded: "Transaction Dropped: Block Compute Capacity Maxed Out",
 };
 
@@ -25,7 +25,7 @@ export interface ParsedError {
 }
 
 export function translateError(error: string): ParsedError {
-  // Issue #134: check for protocol-level resource limit result code first
+  check for protocol-level resource limit result code first
   if (
     error === "tx_resource_limit_exceeded" ||
     error === "txResourceLimitExceeded" ||

@@ -1,5 +1,5 @@
 /**
- * Issue #115 — RPC Node Performance Dashboard
+ * RPC Node Performance Dashboard
  * Polls /api/rpc-metrics every 15 s and renders latency sparklines + uptime.
  */
 import { useEffect, useState } from "react";

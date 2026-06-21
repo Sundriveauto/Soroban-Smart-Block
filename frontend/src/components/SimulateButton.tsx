@@ -1,4 +1,4 @@
-// Issue #46 — Contract execution simulation estimator button
+Contract execution simulation estimator button
 import { useState } from "react";
 
 interface SimResult {

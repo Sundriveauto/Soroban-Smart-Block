@@ -1,5 +1,5 @@
 /**
- * Issue #120 — SDK Snippet Copy Button.
+ * SDK Snippet Copy Button.
  *
  * Generates ready-to-use code snippets for a contract function in
  * JavaScript, Python, and Rust, pre-populated with the contract ID
