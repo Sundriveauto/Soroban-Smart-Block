@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
+import NetworkSwitcher from "./NetworkSwitcher";
 
 export default function Nav() {
   const [q, setQ] = useState("");
@@ -62,6 +63,7 @@ export default function Nav() {
         />
         <button type="submit">Search</button>
       </form>
+      <NetworkSwitcher />
       <ThemeToggle />
     </header>
   );

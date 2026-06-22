@@ -7,6 +7,7 @@
  */
 
 import { useState } from "react";
+import { useNetwork } from "../contexts/NetworkContext";
 
 type Lang = "javascript" | "python" | "rust";
 
@@ -20,15 +21,15 @@ function buildArgList(args: { name: string; type?: string }[] = []): string {
   return args.map((a) => a.name).join(", ");
 }
 
-function jsSnippet(contractId: string, fnName: string, args: Props["args"] = []): string {
+function jsSnippet(contractId: string, fnName: string, rpcUrl: string, passphrase: string, args: Props["args"] = []): string {
   const argList = buildArgList(args);
-  return `import { Contract, SorobanRpc, TransactionBuilder, Networks, BASE_FEE } from "@stellar/stellar-sdk";
+  return `import { Contract, SorobanRpc, TransactionBuilder, BASE_FEE } from "@stellar/stellar-sdk";
 
-const rpc = new SorobanRpc.Server("https://soroban-testnet.stellar.org");
+const rpc = new SorobanRpc.Server("${rpcUrl}");
 const contract = new Contract("${contractId}");
 
 const account = await rpc.getAccount(sourcePublicKey);
-const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
+const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: "${passphrase}" })
   .addOperation(contract.call("${fnName}"${argList ? `, ${argList}` : ""}))
   .setTimeout(30)
   .build();
@@ -39,17 +40,17 @@ const result = await rpc.sendTransaction(prepared);
 console.log(result);`;
 }
 
-function pythonSnippet(contractId: string, fnName: string, args: Props["args"] = []): string {
+function pythonSnippet(contractId: string, fnName: string, rpcUrl: string, passphrase: string, args: Props["args"] = []): string {
   const argList = buildArgList(args);
-  return `from stellar_sdk import SorobanServer, Keypair, TransactionBuilder, Network
+  return `from stellar_sdk import SorobanServer, Keypair, TransactionBuilder
 from stellar_sdk.soroban_rpc import SendTransactionStatus
 
-server = SorobanServer("https://soroban-testnet.stellar.org")
+server = SorobanServer("${rpcUrl}")
 contract_id = "${contractId}"
 
 source = server.load_account(source_public_key)
 tx = (
-    TransactionBuilder(source, network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE, base_fee=100)
+    TransactionBuilder(source, network_passphrase="${passphrase}", base_fee=100)
     .append_invoke_contract_function_op(
         contract_id=contract_id,
         function_name="${fnName}",
@@ -87,13 +88,14 @@ const LANGS: { key: Lang; label: string }[] = [
 ];
 
 export default function SdkSnippet({ contractId, fnName, args = [] }: Props) {
+  const { active } = useNetwork();
   const [lang, setLang] = useState<Lang>("javascript");
   const [copied, setCopied] = useState(false);
 
   const snippets: Record<Lang, string> = {
-    javascript: jsSnippet(contractId, fnName, args),
-    python: pythonSnippet(contractId, fnName, args),
-    rust: rustSnippet(contractId, fnName, args),
+    javascript: jsSnippet(contractId, fnName, active.rpcUrl, active.passphrase, args),
+    python:     pythonSnippet(contractId, fnName, active.rpcUrl, active.passphrase, args),
+    rust:       rustSnippet(contractId, fnName, args),
   };
 
   const snippet = snippets[lang];
