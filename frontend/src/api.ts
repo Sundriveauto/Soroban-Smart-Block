@@ -538,4 +538,44 @@ export const api = {
       null,
       2,
     ),
+
+  // Issue #210: Sub-invocation search with 8+ filter types
+  searchSubInvocations: (filter: SubInvocationFilter) => {
+    const q = new URLSearchParams();
+    if (filter.contract) q.set("contract", filter.contract);
+    if (filter.depth_min != null) q.set("depth_min", String(filter.depth_min));
+    if (filter.depth_max != null) q.set("depth_max", String(filter.depth_max));
+    if (filter.gas_min != null) q.set("gas_min", String(filter.gas_min));
+    if (filter.gas_max != null) q.set("gas_max", String(filter.gas_max));
+    if (filter.function) q.set("function", filter.function);
+    if (filter.date_from) q.set("date_from", filter.date_from);
+    if (filter.date_to) q.set("date_to", filter.date_to);
+    if (filter.arg_query) q.set("arg_query", filter.arg_query);
+    if (filter.has_reentrancy != null) q.set("has_reentrancy", String(filter.has_reentrancy));
+    if (filter.tx_hash) q.set("tx_hash", filter.tx_hash);
+    if (filter.ledger_min != null) q.set("ledger_min", String(filter.ledger_min));
+    if (filter.ledger_max != null) q.set("ledger_max", String(filter.ledger_max));
+    return get<SubInvocationExtended[]>(`/sub-invocations/search?${q}`);
+  },
+
+  // Issue #210: Global analytics for sub-invocations
+  subInvocationAnalytics: () => get<SubInvocationAnalytics>(`/sub-invocations/analytics`),
+
+  // Issue #210: Call-path metrics for a single transaction (6 analytical metrics)
+  callPathMetrics: (txHash: string) =>
+    get<SubInvocationCallMetrics>(`/transactions/${txHash}/call-path-metrics`),
+
+  // Issue #210: Cross-transaction tree diff
+  compareTransactionTrees: (txA: string, txB: string) =>
+    get<TransactionTreeDiff>(
+      `/transactions/compare?a=${encodeURIComponent(txA)}&b=${encodeURIComponent(txB)}`,
+    ),
+
+  // Issue #210: SSE stream URL builder for live sub-invocation feed
+  subInvocationStreamUrl: (filter?: Pick<SubInvocationFilter, "contract" | "function">) => {
+    const q = new URLSearchParams();
+    if (filter?.contract) q.set("contract", filter.contract);
+    if (filter?.function) q.set("function", filter.function);
+    return `${BASE}/sub-invocations/stream?${q}`;
+  },
 };

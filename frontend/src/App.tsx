@@ -16,6 +16,7 @@ const SharedSandbox = lazy(() => import("./pages/SharedSandbox"));
 const DeveloperWorkspace = lazy(() => import("./pages/DeveloperWorkspace"));
 const SetupPage = lazy(() => import("./pages/SetupPage"));
 const BatchMultiCall = lazy(() => import("./pages/BatchMultiCall"));
+const SubInvocationPage = lazy(() => import("./pages/SubInvocationPage"));
 
 function Fallback() {
   return <p style={{ padding: 32, textAlign: "center", color: "var(--muted)" }}>Loading…</p>;
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/sandbox/:id" element={<SharedSandbox />} />
             <Route path="/setup" element={<SetupPage />} />
             <Route path="/batch" element={<BatchMultiCall />} />
+            <Route path="/sub-invocations" element={<SubInvocationPage />} />
           </Routes>
         </Suspense>
       </main>
