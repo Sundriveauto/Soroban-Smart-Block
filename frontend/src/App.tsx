@@ -17,6 +17,7 @@ const DeveloperWorkspace = lazy(() => import("./pages/DeveloperWorkspace"));
 const SetupPage = lazy(() => import("./pages/SetupPage"));
 const BatchMultiCall = lazy(() => import("./pages/BatchMultiCall"));
 const SubInvocationPage = lazy(() => import("./pages/SubInvocationPage"));
+const RateLimitDashboard = lazy(() => import("./pages/RateLimitDashboard"));
 
 function Fallback() {
   return <p style={{ padding: 32, textAlign: "center", color: "var(--muted)" }}>Loading…</p>;
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/setup" element={<SetupPage />} />
             <Route path="/batch" element={<BatchMultiCall />} />
             <Route path="/sub-invocations" element={<SubInvocationPage />} />
+            <Route path="/admin/rate-limits" element={<RateLimitDashboard />} />
           </Routes>
         </Suspense>
       </main>
