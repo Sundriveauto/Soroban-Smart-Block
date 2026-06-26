@@ -112,6 +112,8 @@ make dev
 
 ## Contract API
 
+- Rustdoc reference: https://soroban-smart-block-explorer.github.io/Soroban-Smart-Block/docs/reference/contract/soroban_explorer_contract/
+
 | Function                                       | Description                            |
 | ---------------------------------------------- | -------------------------------------- |
 | `init(admin)`                                  | Initialise contract with admin address |
