@@ -175,6 +175,28 @@ impl ExplorerContract {
         env.storage().instance().set(&DataKey::MaxEvents, &cap);
     }
 
+    /// Transfer admin rights to a new address
+    pub fn transfer_admin(env: Env, caller: Address, new_admin: Address) {
+        caller.require_auth();
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        if caller != admin {
+            panic_with_error!(&env, Error::Unauthorized);
+        }
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        env.events().publish((symbol_short!("adm_tx"),), (caller, new_admin));
+    }
+
+    /// Emergency pause (admin only).
+    pub fn set_paused(env: Env, caller: Address, paused: bool) {
+        caller.require_auth();
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        if caller != admin {
+            panic_with_error!(&env, Error::Unauthorized);
+        }
+        env.storage().instance().set(&DataKey::IsPaused, &paused);
+        env.events().publish((symbol_short!("pause"),), (caller, paused));
+    }
+
     // ── Contract Registry ─────────────────────────────────────────────────────
 
     /// Registers ABI-like metadata for a Soroban contract.
@@ -449,6 +471,11 @@ impl ExplorerContract {
     /// ```
     pub fn submit_event(env: Env, caller: Address, input: EventInput) {
         caller.require_auth();
+        let is_paused: bool = env.storage().instance().get(&DataKey::IsPaused).unwrap_or(false);
+        if is_paused {
+            panic_with_error!(&env, Error::Unauthorized);
+        }
+        
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         if caller != admin {
             panic_with_error!(&env, Error::Unauthorized);
