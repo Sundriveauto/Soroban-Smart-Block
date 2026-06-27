@@ -1,10 +1,13 @@
 # ⬡ Soroban Smart Block Explorer
 
 > **Human-readable Soroban contract events on Stellar.**
-> Instead of raw XDR bytes, users see: *"Address GABC… swapped 100 USDC → 98.7 XLM on StellarSwap at ledger #4521983."*
+> Instead of raw XDR bytes, users see: _"Address GABC… swapped 100 USDC → 98.7 XLM on StellarSwap at ledger #4521983."_
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built on Stellar](https://img.shields.io/badge/Built%20on-Stellar-blueviolet)](https://stellar.org)
+[![CI](https://github.com/Soroban-Smart-Block-Explorer/Soroban-Smart-Block/actions/workflows/ci.yml/badge.svg)](https://github.com/Soroban-Smart-Block-Explorer/Soroban-Smart-Block/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Soroban-Smart-Block-Explorer/Soroban-Smart-Block/actions/workflows/security.yml/badge.svg)](https://github.com/Soroban-Smart-Block-Explorer/Soroban-Smart-Block/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/Soroban-Smart-Block-Explorer/Soroban-Smart-Block/branch/main/graph/badge.svg)](https://codecov.io/gh/Soroban-Smart-Block-Explorer/Soroban-Smart-Block)
 
 ---
 
@@ -16,8 +19,8 @@ Stellar block explorers have excellent support for classic assets but poor suppo
 
 Soroban Smart Block Explorer decodes contract calls on the fly using an ABI-like metadata registry, turning opaque XDR into plain English.
 
-| Before | After |
-|--------|-------|
+| Before                      | After                                                                         |
+| --------------------------- | ----------------------------------------------------------------------------- |
 | `AAAAA9hZ...[Raw XDR]...==` | Address `GABC…` swapped 100 USDC → 98.7 XLM on StellarSwap at ledger #4521983 |
 
 ---
@@ -58,12 +61,14 @@ Soroban Smart Block Explorer decodes contract calls on the fly using an ABI-like
 ## Quick Start
 
 ### Prerequisites
+
 - Rust + `wasm32-unknown-unknown` target
 - [Stellar CLI](https://developers.stellar.org/docs/tools/developer-tools/cli/stellar-cli)
 - Node.js ≥ 20
 - PostgreSQL
 
 ### 1. Clone & configure
+
 ```bash
 git clone https://github.com/your-org/Soroban-Smart-Block
 cd Soroban-Smart-Block
@@ -72,20 +77,24 @@ cp .env.example .env
 ```
 
 ### 2. Build & deploy the contract
+
 ```bash
 make build      # compile to WASM
 make test       # run unit tests
 make deploy     # deploy to testnet, prints CONTRACT_ID
 ```
+
 Copy the printed contract ID into `.env` as `EXPLORER_CONTRACT_ID`.
 
 ### 3. Start the indexer + API
+
 ```bash
 make indexer-install
 make indexer
 ```
 
 ### 4. Start the frontend
+
 ```bash
 make frontend-install
 make frontend
@@ -93,6 +102,7 @@ make frontend
 ```
 
 Or run both together:
+
 ```bash
 make install
 make dev
@@ -102,28 +112,30 @@ make dev
 
 ## Contract API
 
-| Function | Description |
-|----------|-------------|
-| `init(admin)` | Initialise contract with admin address |
-| `register_contract(caller, contract_id, meta)` | Register ABI metadata for a contract |
-| `update_contract(caller, contract_id, meta)` | Update metadata (admin or registrant) |
-| `get_contract(contract_id)` | Fetch contract metadata |
-| `submit_event(...)` | Persist a decoded event (admin only) |
-| `get_event(seq)` | Fetch event by sequence number |
-| `get_events(from, limit)` | Paginated event list |
-| `event_count()` | Total stored events |
+- Rustdoc reference: https://soroban-smart-block-explorer.github.io/Soroban-Smart-Block/docs/reference/contract/soroban_explorer_contract/
+
+| Function                                       | Description                            |
+| ---------------------------------------------- | -------------------------------------- |
+| `init(admin)`                                  | Initialise contract with admin address |
+| `register_contract(caller, contract_id, meta)` | Register ABI metadata for a contract   |
+| `update_contract(caller, contract_id, meta)`   | Update metadata (admin or registrant)  |
+| `get_contract(contract_id)`                    | Fetch contract metadata                |
+| `submit_event(...)`                            | Persist a decoded event (admin only)   |
+| `get_event(seq)`                               | Fetch event by sequence number         |
+| `get_events(from, limit)`                      | Paginated event list                   |
+| `event_count()`                                | Total stored events                    |
 
 ---
 
 ## REST API
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/events?contract=&fn=&page=` | Paginated event list |
-| `GET /api/events/:seq` | Single event |
-| `GET /api/contracts/:id` | Contract ABI metadata |
-| `POST /api/contracts` | Register contract metadata |
-| `GET /api/wallet/:address` | Wallet event history |
+| Endpoint                              | Description                |
+| ------------------------------------- | -------------------------- |
+| `GET /api/events?contract=&fn=&page=` | Paginated event list       |
+| `GET /api/events/:seq`                | Single event               |
+| `GET /api/contracts/:id`              | Contract ABI metadata      |
+| `POST /api/contracts`                 | Register contract metadata |
+| `GET /api/wallet/:address`            | Wallet event history       |
 
 ---
 
@@ -194,6 +206,7 @@ The decoder recognises SEP-41 token events (`transfer`, `mint`, `burn`) and form
 ```
 
 **Data flow for a decoded event:**
+
 1. Soroban contract emits an event (e.g., `swap` on StellarSwap)
 2. Indexer fetches it via `SorobanRpc.getEvents()`
 3. `decoder.js` calls `scValToNative()` on topics/data, looks up registered ABI
@@ -204,19 +217,35 @@ The decoder recognises SEP-41 token events (`transfer`, `mint`, `burn`) and form
 
 ## SCF Submission Documents
 
-| Document | Description |
-|----------|-------------|
-| [ROADMAP.md](ROADMAP.md) | 3-tranche milestone plan (MVP → Testnet → Mainnet) |
-| [BUDGET.md](BUDGET.md) | Engineering hours and cost breakdown per tranche |
-| [TEAM.md](TEAM.md) | Team bios and qualification evidence |
-| [MANIFEST.md](MANIFEST.md) | Full project manifest |
-| [stellar.toml](stellar.toml) | SEP-1 compliant network info |
+| Document                             | Description                                        |
+| ------------------------------------ | -------------------------------------------------- |
+| [docs/ROADMAP.md](docs/ROADMAP.md)   | 3-tranche milestone plan (MVP → Testnet → Mainnet) |
+| [docs/BUDGET.md](docs/BUDGET.md)     | Engineering hours and cost breakdown per tranche   |
+| [docs/TEAM.md](docs/TEAM.md)         | Team bios and qualification evidence               |
+| [docs/MANIFEST.md](docs/MANIFEST.md) | Full project manifest                              |
+| [stellar.toml](stellar.toml)         | SEP-1 compliant network info                       |
 
 ---
 
+## Documentation
+
+A full developer documentation site lives under [`docs/`](docs/):
+
+- [Documentation home](docs/site/index.html) — guides, reference, and search.
+- [Getting started](docs/guides/getting-started.md) and other step-by-step guides.
+- [API playground](docs/api/playground.html) (Swagger UI) and an interactive
+  [try-it console](docs/api/try-it.html) with curl / JS / Python / Rust snippets.
+- [OpenAPI spec](docs/api/openapi.json) and [API changelog](docs/api/changelog.md).
+- [Interactive architecture explorer](docs/site/architecture.html).
+
+The site is published to GitHub Pages by
+[`.github/workflows/docs.yml`](.github/workflows/docs.yml), which also generates
+JSDoc (indexer) and Rustdoc (contract) reference.
+
 ## Contributing
 
-PRs welcome. Please open an issue first for large changes.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow, commit conventions, and
+PR checklist. Please open an issue first for large changes.
 
 ---
 

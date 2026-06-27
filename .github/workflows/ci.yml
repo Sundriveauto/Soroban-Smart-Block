@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, "release/*"]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # ── 1. Test ───────────────────────────────────────────────────────────────
+  # Rust contract tests + indexer unit tests + frontend typecheck
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - name: Cache Rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Rust fmt + clippy + test
+        run: |
+          cargo fmt --check
+          cargo clippy
+          cargo test -p soroban-explorer-contract
+
+      - name: Rustdoc build
+        run: |
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps -p soroban-explorer-contract
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            indexer/node_modules
+            frontend/node_modules
+          key: node-20-${{ hashFiles('indexer/package-lock.json', 'frontend/package-lock.json') }}
+          restore-keys: node-20-
+
+      - name: Install deps
+        run: |
+          cd indexer && npm install && cd ..
+          cd frontend && npm ci
+
+      - name: Lockfile drift check
+        run: |
+          if ! git diff --exit-code indexer/package-lock.json; then
+            echo "::error::indexer/package-lock.json is out of sync. Run 'npm install' in indexer/ and commit it."
+            exit 1
+          fi
+
+      - name: Validate OpenAPI spec
+        run: npx -y @apidevtools/swagger-parser-cli validate docs/api/openapi.yaml
+
+      - name: Indexer tests
+        run: npm test
+        working-directory: indexer
+      - name: Frontend typecheck + build
+        run: npm run build
+        working-directory: frontend
+
+  # ── 2. Build ──────────────────────────────────────────────────────────────
+  # Verify Docker images build cleanly (catches Dockerfile regressions)
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build indexer image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./indexer
+          push: false
+          tags: indexer:ci
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          tags: frontend:ci
+
+  # ── 3. Security ───────────────────────────────────────────────────────────
+  # CodeQL static analysis — runs in parallel with build
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: CodeQL autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript

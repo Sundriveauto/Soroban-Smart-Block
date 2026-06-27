@@ -1,0 +1,33 @@
+# Docker Compose override for development (hot-reloading, source mounts)
+#
+# This file is loaded automatically by Docker Compose when present.
+# It merges with docker-compose.yml — no --profile flag needed.
+#
+# Usage:
+#   docker compose up -d
+#
+# To run without overrides (production-like):
+#   docker compose -f docker-compose.yml --profile prod up -d
+
+services:
+  indexer:
+    # Mount source for hot-reload (Node.js --watch detects in-place changes)
+    volumes:
+      - ./indexer/src:/app/src
+    build:
+      dockerfile: Dockerfile.dev
+
+  frontend:
+    # Mount source for Vite HMR
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      # Tell Vite dev server to proxy API calls to the indexer container
+      VITE_API_URL: http://indexer:3001
+      # Match the healthcheck in docker-compose.yml to the Vite dev server port
+      FRONTEND_CONTAINER_PORT: "5173"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"

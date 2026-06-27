@@ -1,0 +1,145 @@
+.dependency-visualizer {
+  background: #1e1e1e;
+  border: 1px solid #3e3e42;
+  border-radius: 3px;
+  padding: 12px;
+  font-size: 11px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dep-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.dep-header h3 {
+  margin: 0;
+  font-size: 12px;
+  color: #d4d4d4;
+}
+
+.dep-stats {
+  display: flex;
+  gap: 8px;
+}
+
+.stat {
+  padding: 2px 6px;
+  background: #252526;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.stat.critical {
+  color: #f48771;
+  border-left: 2px solid #f48771;
+}
+
+.stat.high {
+  color: #dcdcaa;
+  border-left: 2px solid #dcdcaa;
+}
+
+.stat.size {
+  color: #4ec9b0;
+}
+
+.dep-loading {
+  text-align: center;
+  color: #6a6a6a;
+  padding: 12px;
+  font-size: 11px;
+}
+
+.dep-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dep-item {
+  background: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 2px;
+  padding: 6px;
+}
+
+.dep-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.vuln-badge {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.vuln-badge.critical {
+  background: #f48771;
+  color: white;
+}
+
+.vuln-badge.high {
+  background: #dcdcaa;
+  color: #1e1e1e;
+}
+
+.vuln-badge.medium {
+  background: #ce9178;
+  color: white;
+}
+
+.dep-version {
+  color: #6a6a6a;
+  font-size: 10px;
+  font-weight: normal;
+}
+
+.dep-vulns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.vuln {
+  padding: 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.vuln.critical {
+  background: rgba(244, 135, 113, 0.15);
+  color: #f48771;
+  border-left: 2px solid #f48771;
+}
+
+.vuln.high {
+  background: rgba(220, 220, 170, 0.15);
+  color: #dcdcaa;
+  border-left: 2px solid #dcdcaa;
+}
+
+.vuln.medium {
+  background: rgba(206, 145, 120, 0.15);
+  color: #ce9178;
+  border-left: 2px solid #ce9178;
+}
+
+.vuln strong {
+  margin-right: 4px;
+}

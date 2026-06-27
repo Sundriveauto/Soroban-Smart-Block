@@ -16,13 +16,19 @@ export default function WalletPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div className="card">
         <h2 style={{ marginBottom: 4 }}>Wallet History</h2>
-        <code style={{ fontSize: 12, color: "var(--muted)", wordBreak: "break-all" }}>{address}</code>
+        <code
+          style={{
+            fontSize: 12,
+            color: "var(--muted)",
+            wordBreak: "break-all",
+          }}
+        >
+          {address}
+        </code>
       </div>
 
       <div className="card">
-        {isLoading
-          ? <p style={{ color: "var(--muted)" }}>Loading…</p>
-          : <EventTable events={events} />}
+        {isLoading ? <p style={{ color: "var(--muted)" }}>Loading…</p> : <EventTable events={events} />}
       </div>
     </div>
   );
