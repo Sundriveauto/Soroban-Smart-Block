@@ -23,6 +23,7 @@ pub enum Error {
     AlreadyExists = 3,
     /// The requested event buffer size is below the minimum allowed value.
     BelowFloor = 4,
+    ContractPaused = 5,
 }
 
 // ── Storage keys ─────────────────────────────────────────────────────────────
@@ -204,6 +205,9 @@ impl ExplorerContract {
         meta: ContractMeta,
     ) {
         caller.require_auth();
+        if env.storage().instance().get(&DataKey::Paused).unwrap_or(false) {
+            panic_with_error!(&env, Error::ContractPaused);
+        }
         let key = DataKey::Contract(contract_id.clone());
         if env.storage().persistent().has(&key) {
             panic_with_error!(&env, Error::AlreadyExists);
@@ -248,6 +252,9 @@ impl ExplorerContract {
     /// ```
     pub fn update_contract(env: Env, caller: Address, contract_id: BytesN<32>, meta: ContractMeta) {
         caller.require_auth();
+        if env.storage().instance().get(&DataKey::Paused).unwrap_or(false) {
+            panic_with_error!(&env, Error::ContractPaused);
+        }
         let key = DataKey::Contract(contract_id.clone());
         let existing: ContractMeta = env
             .storage()
@@ -293,6 +300,29 @@ impl ExplorerContract {
             .persistent()
             .get(&DataKey::Contract(contract_id))
             .unwrap_or_else(|| panic_with_error!(&env, Error::NotFound))
+    }
+
+    /// Remove a contract from the registry. (#258)
+    /// Only the original registrant or admin may deregister.
+    pub fn deregister_contract(env: Env, caller: Address, contract_id: BytesN<32>) {
+        caller.require_auth();
+        if env.storage().instance().get(&DataKey::Paused).unwrap_or(false) {
+            panic_with_error!(&env, Error::ContractPaused);
+        }
+        let key = DataKey::Contract(contract_id.clone());
+        let existing: ContractMeta = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or_else(|| panic_with_error!(&env, Error::NotFound));
+
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        if caller != existing.registered_by && caller != admin {
+            panic_with_error!(&env, Error::Unauthorized);
+        }
+        env.storage().persistent().remove(&key);
+        env.events()
+            .publish((symbol_short!("deregist"), contract_id), caller);
     }
 
     // ── Event cap management ──────────────────────────────────────────────────
@@ -363,6 +393,38 @@ impl ExplorerContract {
         (count, max)
     }
 
+    // ── Pause / unpause (#264) ────────────────────────────────────────────────
+
+    /// Admin-only: freeze all state-mutating operations.
+    pub fn pause(env: Env, caller: Address) {
+        caller.require_auth();
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        if caller != admin {
+            panic_with_error!(&env, Error::Unauthorized);
+        }
+        env.storage().instance().set(&DataKey::Paused, &true);
+        env.events().publish((symbol_short!("paused"),), ());
+    }
+
+    /// Admin-only: unfreeze the contract.
+    pub fn unpause(env: Env, caller: Address) {
+        caller.require_auth();
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        if caller != admin {
+            panic_with_error!(&env, Error::Unauthorized);
+        }
+        env.storage().instance().set(&DataKey::Paused, &false);
+        env.events().publish((symbol_short!("unpaused"),), ());
+    }
+
+    /// Return whether the contract is currently paused.
+    pub fn is_paused(env: Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
+    }
+
     // ── Event Decoder ─────────────────────────────────────────────────────────
 
     /// Submits a decoded event for on-chain storage in the explorer ring buffer.
@@ -390,6 +452,9 @@ impl ExplorerContract {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         if caller != admin {
             panic_with_error!(&env, Error::Unauthorized);
+        }
+        if env.storage().instance().get(&DataKey::Paused).unwrap_or(false) {
+            panic_with_error!(&env, Error::ContractPaused);
         }
 
         let seq: u64 = env
