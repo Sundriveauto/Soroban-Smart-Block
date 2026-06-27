@@ -58,6 +58,10 @@ Soroban Smart Block Explorer decodes contract calls on the fly using an ABI-like
 
 ---
 
+### Architecture Decision Records
+
+- [ADR index](docs/adr/README.md) for the six core design choices behind the explorer.
+
 ## Quick Start
 
 ### Prerequisites
@@ -228,6 +232,8 @@ The decoder recognises SEP-41 token events (`transfer`, `mint`, `burn`) and form
 ## Documentation
 
 A full developer documentation site lives under [`docs/`](docs/):
+
+- [Architecture Decision Records](docs/adr/README.md) — rationale for the six core design choices behind the explorer.
 
 - [Documentation home](docs/site/index.html) — guides, reference, and search.
 - [Getting started](docs/guides/getting-started.md) and other step-by-step guides.
