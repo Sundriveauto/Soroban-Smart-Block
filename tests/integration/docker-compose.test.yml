@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: soroban_explorer
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+
+  stellar-quickstart:
+    image: stellar/quickstart:testing
+    command: --enable-soroban-rpc
+    ports:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 3s
+      timeout: 10s
+
+  indexer:
+    build:
+      context: ../../indexer
+      dockerfile: Dockerfile.dev
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/soroban_explorer
+      SOROBAN_RPC_URL: http://stellar-quickstart:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      stellar-quickstart:
+        condition: service_healthy
+    ports:
+      - "3001"
