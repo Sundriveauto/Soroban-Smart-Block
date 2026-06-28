@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Playground · Soroban Smart Block Explorer</title>
+    <meta
+      name="description"
+      content="Interactive Swagger UI playground for the Soroban Smart Block Explorer API."
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        background: #0d1117;
+      }
+      .topbar-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1.25rem;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+        color: #e6edf3;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      .topbar-wrapper a {
+        color: #58a6ff;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .topbar-wrapper strong {
+        font-size: 1rem;
+      }
+      .topbar-wrapper .spacer {
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar-wrapper">
+      <strong>⬡ API Playground</strong>
+      <span class="spacer"></span>
+      <a href="../site/index.html">← Docs home</a>
+      <a href="./try-it.html">Try-it console</a>
+      <a href="./changelog.md">API changelog</a>
+    </div>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+    <script>
+      window.addEventListener("load", () => {
+        window.ui = SwaggerUIBundle({
+          url: "./openapi.yaml",
+          dom_id: "#swagger-ui",
+          deepLinking: true,
+          tryItOutEnabled: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset,
+          ],
+          plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+          layout: "StandaloneLayout",
+          persistAuthorization: true,
+        });
+      });
+    </script>
+  </body>
+</html>

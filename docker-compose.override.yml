@@ -1,0 +1,13 @@
+services:
+  indexer:
+    build:
+      dockerfile: Dockerfile
+    volumes: []
+
+  frontend:
+    build:
+      dockerfile: Dockerfile
+    volumes: []
+
+  seed:
+    profiles: ["none"]

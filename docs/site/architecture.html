@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture Explorer · Soroban Smart Block Explorer</title>
+    <meta
+      name="description"
+      content="Interactive, clickable architecture diagram of the Soroban Smart Block Explorer."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .layout {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 1.5rem;
+      }
+      @media (max-width: 820px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      .diagram {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1rem;
+      }
+      .node {
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      .node rect {
+        stroke-width: 1.5;
+      }
+      .node text {
+        fill: var(--text);
+        font-size: 13px;
+        font-family:
+          system-ui,
+          sans-serif;
+        pointer-events: none;
+      }
+      .node:hover {
+        opacity: 0.85;
+      }
+      .node.dim {
+        opacity: 0.25;
+      }
+      .edge {
+        stroke: #56607a;
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .edge.flow {
+        stroke-dasharray: 6 6;
+        animation: dash 1s linear infinite;
+        stroke: var(--accent);
+      }
+      @keyframes dash {
+        to {
+          stroke-dashoffset: -12;
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.25rem;
+      }
+      .panel h3 {
+        margin-top: 0;
+      }
+      .panel .tech {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        margin-bottom: 0.75rem;
+      }
+      .panel ul {
+        padding-left: 1.1rem;
+      }
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .controls button {
+        background: var(--panel-2);
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      .controls button.active {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <span class="brand">⬡ Architecture Explorer</span>
+      <span class="spacer"></span>
+      <nav>
+        <a href="./index.html">Docs home</a>
+        <a href="./guides.html#architecture-deep-dive">Deep dive</a>
+        <a href="../api/playground.html">API</a>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Interactive architecture</h1>
+      <p style="color: var(--muted)">
+        Click any component to see what it does, the technology behind it, and
+        where to read more. Use the filters to highlight a single layer, or play
+        the data flow.
+      </p>
+
+      <div class="controls" id="controls">
+        <button data-layer="all" class="active">All layers</button>
+        <button data-layer="data">Data</button>
+        <button data-layer="logic">Logic</button>
+        <button data-layer="presentation">Presentation</button>
+        <button id="flowToggle">▶ Animate data flow</button>
+      </div>
+
+      <div class="layout">
+        <div class="diagram">
+          <svg viewBox="0 0 480 460" width="100%" id="svg">
+            <g class="edges" id="edges"></g>
+            <g id="nodes"></g>
+          </svg>
+        </div>
+        <aside class="panel" id="panel">
+          <h3>Select a component</h3>
+          <p style="color: var(--muted)">
+            Click a node in the diagram to inspect it.
+          </p>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site">Soroban Smart Block Explorer · Architecture</footer>
+
+    <script>
+      const nodes = {
+        stellar: {
+          x: 150,
+          y: 20,
+          w: 180,
+          h: 48,
+          label: "Stellar Network",
+          layer: "data",
+          color: "#bc8cff",
+          tech: "Soroban RPC / Horizon",
+          desc: "Source of truth. The indexer polls getEvents and getTransaction for new ledger activity.",
+          links: [["Getting started", "./guides.html#getting-started"]],
+        },
+        indexer: {
+          x: 40,
+          y: 130,
+          w: 160,
+          h: 48,
+          label: "Indexer",
+          layer: "logic",
+          color: "#3fb950",
+          tech: "Node.js",
+          desc: "Fetches raw events, decodes XDR into human text using the ABI registry, and writes decoded events to PostgreSQL.",
+          links: [
+            ["Architecture deep dive", "./guides.html#architecture-deep-dive"],
+            ["Register a contract", "./guides.html#register-contract"],
+          ],
+        },
+        postgres: {
+          x: 280,
+          y: 130,
+          w: 160,
+          h: 48,
+          label: "PostgreSQL",
+          layer: "data",
+          color: "#bc8cff",
+          tech: "PostgreSQL",
+          desc: "Stores decoded events, contract metadata, and derived analytics for fast querying.",
+          links: [],
+        },
+        api: {
+          x: 280,
+          y: 240,
+          w: 160,
+          h: 48,
+          label: "REST + WS API",
+          layer: "logic",
+          color: "#3fb950",
+          tech: "Express",
+          desc: "Serves decoded data over a REST API on :3001 and pushes live updates over WebSocket.",
+          links: [
+            ["API playground", "../api/playground.html"],
+            ["Try-it console", "../api/try-it.html"],
+          ],
+        },
+        ws: {
+          x: 40,
+          y: 240,
+          w: 160,
+          h: 48,
+          label: "WebSocket stream",
+          layer: "logic",
+          color: "#3fb950",
+          tech: "ws",
+          desc: "Broadcasts event, vault_ratio, and contract_link messages to connected clients in real time.",
+          links: [["Try-it console", "../api/try-it.html"]],
+        },
+        frontend: {
+          x: 150,
+          y: 360,
+          w: 180,
+          h: 48,
+          label: "React Frontend",
+          layer: "presentation",
+          color: "#ffa657",
+          tech: "Vite + React + TanStack Query",
+          desc: "The user interface: event feed, contract and wallet pages, and decoded event detail views.",
+          links: [["Building with the API", "./guides.html#building-with-the-api"]],
+        },
+      };
+
+      const edges = [
+        ["stellar", "indexer"],
+        ["indexer", "postgres"],
+        ["postgres", "api"],
+        ["indexer", "ws"],
+        ["api", "frontend"],
+        ["ws", "frontend"],
+      ];
+
+      const svgNodes = document.getElementById("nodes");
+      const svgEdges = document.getElementById("edges");
+      const panel = document.getElementById("panel");
+
+      function center(n) {
+        return { x: n.x + n.w / 2, y: n.y + n.h / 2 };
+      }
+
+      edges.forEach(([a, b]) => {
+        const ca = center(nodes[a]);
+        const cb = center(nodes[b]);
+        const path = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
+        path.setAttribute("d", `M ${ca.x} ${ca.y} L ${cb.x} ${cb.y}`);
+        path.setAttribute("class", "edge");
+        path.dataset.edge = `${a}-${b}`;
+        svgEdges.appendChild(path);
+      });
+
+      Object.entries(nodes).forEach(([id, n]) => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", "node");
+        g.dataset.id = id;
+        g.dataset.layer = n.layer;
+        const rect = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
+        rect.setAttribute("x", n.x);
+        rect.setAttribute("y", n.y);
+        rect.setAttribute("width", n.w);
+        rect.setAttribute("height", n.h);
+        rect.setAttribute("rx", 9);
+        rect.setAttribute("fill", "#1c2230");
+        rect.setAttribute("stroke", n.color);
+        const text = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
+        text.setAttribute("x", n.x + n.w / 2);
+        text.setAttribute("y", n.y + n.h / 2 + 4);
+        text.setAttribute("text-anchor", "middle");
+        text.textContent = n.label;
+        g.appendChild(rect);
+        g.appendChild(text);
+        g.addEventListener("click", () => select(id));
+        svgNodes.appendChild(g);
+      });
+
+      function select(id) {
+        const n = nodes[id];
+        panel.innerHTML = `
+          <h3>${n.label}</h3>
+          <span class="tech" style="color:${n.color};border-color:${n.color}">${n.tech}</span>
+          <p>${n.desc}</p>
+          ${
+            n.links.length
+              ? "<ul>" +
+                n.links
+                  .map(([t, u]) => `<li><a href="${u}">${t}</a></li>`)
+                  .join("") +
+                "</ul>"
+              : ""
+          }`;
+      }
+
+      // layer filter
+      document.getElementById("controls").addEventListener("click", (e) => {
+        const layer = e.target.dataset.layer;
+        if (!layer) return;
+        document
+          .querySelectorAll("#controls button[data-layer]")
+          .forEach((b) => b.classList.toggle("active", b === e.target));
+        document.querySelectorAll(".node").forEach((node) => {
+          node.classList.toggle(
+            "dim",
+            layer !== "all" && node.dataset.layer !== layer,
+          );
+        });
+      });
+
+      // flow animation
+      let flowing = false;
+      document.getElementById("flowToggle").addEventListener("click", (e) => {
+        flowing = !flowing;
+        document
+          .querySelectorAll(".edge")
+          .forEach((edge) => edge.classList.toggle("flow", flowing));
+        e.target.textContent = flowing
+          ? "⏸ Pause data flow"
+          : "▶ Animate data flow";
+      });
+
+      select("indexer");
+    </script>
+  </body>
+</html>

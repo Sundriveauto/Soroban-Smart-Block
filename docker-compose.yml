@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: soroban-postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=soroban_explorer
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d soroban_explorer"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  stellar-quickstart:
+    image: stellar/quickstart:testing
+    container_name: soroban-quickstart
+    ports:
+      - "8000:8000"
+    command: --standalone --enable-soroban-rpc
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  indexer:
+    build:
+      context: ./indexer
+      dockerfile: Dockerfile.dev
+    container_name: soroban-indexer
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./indexer/src:/app/src
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/soroban_explorer
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: soroban-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    depends_on:
+      - indexer
+
+  seed:
+    image: node:18-alpine
+    container_name: soroban-seed
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: sh -c "apk add make && make migrate && make deploy-contract && make register-abi"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      stellar-quickstart:
+        condition: service_healthy
+      indexer:
+        condition: service_started
+
+volumes:
+  pgdata:

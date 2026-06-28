@@ -1,0 +1,676 @@
+openapi: "3.1.0"
+info:
+  title: Soroban Smart Block Explorer API
+  version: "0.1.0"
+  description: Human-readable Soroban contract event explorer for the Stellar blockchain.
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the API and database connection.
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Database connection failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/events:
+    get:
+      summary: List contract events (offset pagination)
+      description: Returns a list of decoded events using page-based pagination.
+      parameters:
+        - name: contract
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "CC4VM2DTTR4QO4J4E5K2YUXM"
+          description: Filter by contract ID
+        - name: fn
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "transfer"
+          description: Filter by function name
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [soroban, classic]
+            example: "soroban"
+          description: Filter by transaction type
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+            example: 1
+          description: Page number (starts at 1)
+      responses:
+        "200":
+          description: Array of decoded events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DecodedEvent"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/events:
+    get:
+      summary: List contract events (cursor pagination)
+      description: Returns a stable page using keyset (seq-based) pagination.
+      parameters:
+        - name: contract
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "CC4VM2DTTR4QO4J4E5K2YUXM"
+          description: Filter by contract ID
+        - name: fn
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "transfer"
+          description: Filter by function name
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [soroban, classic]
+            example: "soroban"
+          description: Filter by transaction type
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 42
+          description: Event seq cursor from the previous page
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 25
+            maximum: 200
+            example: 20
+          description: Max number of items to return (max 200)
+      responses:
+        "200":
+          description: Paginated events with next_cursor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPaginatedEvents"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Invalid limit value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/events/{seq}:
+    get:
+      summary: Get single event by sequence number
+      description: Returns details of a specific event using its sequence number.
+      parameters:
+        - name: seq
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 15
+          description: Event sequence number
+      responses:
+        "200":
+          description: Decoded event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DecodedEvent"
+        "404":
+          description: Event not found (RFC 7807 Response)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rfc7807Error"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/contracts/{id}:
+    get:
+      summary: Get contract metadata
+      description: Returns metadata details for a registered contract, including its dependency advisory.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "CC4VM2DTTR4QO4J4E5K2YUXM"
+          description: Contract ID
+      responses:
+        "200":
+          description: Contract metadata with dependency advisory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractMeta"
+        "404":
+          description: Contract not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/contracts:
+    post:
+      summary: Register contract ABI metadata
+      description: Registers metadata for a new contract ID. Requires API key authentication.
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractRegistration"
+      responses:
+        "201":
+          description: Contract registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: Invalid input or ABI verification failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Contract already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/wallet/{address}:
+    get:
+      summary: Get events involving a wallet address
+      description: Returns a list of events associated with a specific Stellar/Soroban wallet address.
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "GBADY234567890123456789012345678901234567890123456789012"
+          description: Wallet address
+      responses:
+        "200":
+          description: Array of events matching the wallet address
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DecodedEvent"
+        "400":
+          description: Invalid wallet address format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/search:
+    get:
+      summary: Search contracts, events, wallets, and suggestions
+      description: Searches across contract metadata, events, wallets, and suggestions matching the query.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "transfer"
+          description: Text query for contracts, events, or wallets
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+            example: 10
+          description: Maximum number of search results to return
+      responses:
+        "200":
+          description: Search results grouped by category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+        "400":
+          description: Missing search query
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for write operations. Set via API_KEY environment variable.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token auth support for future key management.
+
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: "ok"
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: "Detailed error message"
+
+    Rfc7807Error:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+          example: "about:blank"
+        title:
+          type: string
+          example: "Not Found"
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: "Event sequence 15 not found"
+
+    DecodedEvent:
+      type: object
+      required: [seq, contract_id, function, ledger, description, raw_topics, raw_data, is_high_bloat_risk, is_clawback]
+      properties:
+        seq:
+          type: integer
+          example: 15
+        contract_id:
+          type: string
+          example: "CC4VM2DTTR4QO4J4E5K2YUXM"
+        function:
+          type: string
+          example: "transfer"
+        ledger:
+          type: integer
+          example: 1050
+        tx_hash:
+          type: string
+          example: "tx_hash_15"
+        description:
+          type: string
+          example: "Event 15 on C1 calling transfer"
+        raw_topics:
+          type: array
+          items:
+            type: string
+          example: ["GBADY234567890123456789012345678901234567890123456789012"]
+        raw_data:
+          type: string
+          example: '{"amount":"1500"}'
+        cpu_instructions:
+          type: integer
+          nullable: true
+          example: 12000
+        mem_bytes:
+          type: integer
+          nullable: true
+          example: 4096
+        fee_charged:
+          type: integer
+          nullable: true
+          example: 1000
+        is_high_bloat_risk:
+          type: boolean
+          example: false
+        upgrade_info:
+          type: object
+          nullable: true
+          example: null
+        storage_tiers:
+          type: object
+          nullable: true
+          example: null
+        is_clawback:
+          type: boolean
+          example: false
+
+    CursorPaginatedEvents:
+      type: object
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecodedEvent"
+        next_cursor:
+          type: integer
+          nullable: true
+          example: 42
+
+    SearchResponse:
+      type: object
+      required: [query, contracts, events, wallets, suggestions]
+      properties:
+        query:
+          type: string
+          example: "transfer"
+        contracts:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchContract"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecodedEvent"
+        wallets:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchWallet"
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchSuggestion"
+
+    SearchContract:
+      type: object
+      required: [id, name, event_count]
+      properties:
+        id:
+          type: string
+          example: "C1"
+        name:
+          type: string
+          example: "Contract One"
+        description:
+          type: string
+          nullable: true
+          example: "First contract details"
+        functions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunctionSpec"
+          example: []
+        event_count:
+          type: integer
+          example: 18
+
+    SearchWallet:
+      type: object
+      required: [address, event_count, contracts]
+      properties:
+        address:
+          type: string
+          example: "GBADY234567890123456789012345678901234567890123456789012"
+        event_count:
+          type: integer
+          example: 5
+        first_seen_ledger:
+          type: integer
+          nullable: true
+          example: 1001
+        last_seen_ledger:
+          type: integer
+          nullable: true
+          example: 1020
+        contracts:
+          type: array
+          items:
+            type: string
+          example: ["C1", "C2"]
+
+    SearchSuggestion:
+      type: object
+      required: [kind, label, route, meta]
+      properties:
+        kind:
+          type: string
+          enum: [contract, event, wallet]
+          example: "contract"
+        label:
+          type: string
+          example: "Contract One"
+        route:
+          type: string
+          example: "/contract/C1"
+        meta:
+          type: object
+          example: { "id": "C1", "description": "First contract details" }
+
+    ContractMeta:
+      type: object
+      required: [id, name, description, functions, has_circuit_breaker, is_paused, is_rwa]
+      properties:
+        id:
+          type: string
+          example: "C1"
+        name:
+          type: string
+          example: "Contract One"
+        description:
+          type: string
+          example: "First contract details"
+        functions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunctionSpec"
+        has_circuit_breaker:
+          type: boolean
+          example: false
+        is_paused:
+          type: boolean
+          example: false
+        is_rwa:
+          type: boolean
+          example: false
+        rwa_type:
+          type: string
+          nullable: true
+          example: null
+        dependency_advisory:
+          type: object
+          nullable: true
+          example: null
+
+    ContractRegistration:
+      type: object
+      required: [id, functions]
+      properties:
+        id:
+          type: string
+          example: "C4"
+        name:
+          type: string
+          example: "Contract Four"
+        description:
+          type: string
+          example: "Fourth contract details"
+        functions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunctionSpec"
+
+    FunctionSpec:
+      type: object
+      required: [name, description, args]
+      properties:
+        name:
+          type: string
+          example: "transfer"
+        description:
+          type: string
+          example: "Transfers tokens between wallets"
+        args:
+          type: array
+          items:
+            type: object
+            required: [name, type]
+            properties:
+              name:
+                type: string
+                example: "to"
+              type:
+                type: string
+                example: "address"

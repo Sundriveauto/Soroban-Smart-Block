@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Guides · Soroban Smart Block Explorer</title>
+    <meta
+      name="description"
+      content="Step-by-step walkthroughs for the Soroban Smart Block Explorer."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .guides-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 2rem;
+      }
+      @media (max-width: 820px) {
+        .guides-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      .toc {
+        position: sticky;
+        top: 80px;
+        align-self: start;
+        font-size: 0.9rem;
+      }
+      .toc a {
+        display: block;
+        padding: 0.3rem 0;
+        color: var(--muted);
+      }
+      .toc a:hover {
+        color: var(--text);
+      }
+      .content h1,
+      .content h2 {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.35rem;
+      }
+      .content h2 {
+        margin-top: 2.5rem;
+      }
+      .content pre {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.9rem;
+        overflow: auto;
+      }
+      .content code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+      }
+      .content :not(pre) > code {
+        background: var(--panel);
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+      }
+      .content table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .content th,
+      .content td {
+        border: 1px solid var(--border);
+        padding: 0.45rem 0.7rem;
+        text-align: left;
+      }
+      .video-callout {
+        background: var(--panel);
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        padding: 0.8rem 1rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin: 1rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <span class="brand">⬡ Guides</span>
+      <span class="spacer"></span>
+      <nav>
+        <a href="./index.html">Docs home</a>
+        <a href="./architecture.html">Architecture</a>
+        <a href="../api/playground.html">API</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="guides-layout">
+        <nav class="toc" id="toc"></nav>
+        <article class="content" id="content">Loading guides…</article>
+      </div>
+    </main>
+
+    <footer class="site">Soroban Smart Block Explorer · Guides</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+    <script>
+      const guides = [
+        ["getting-started", "Getting started", "5 min"],
+        ["register-contract", "Registering a contract", "3 min"],
+        ["building-with-the-api", "Building with the API", "10 min"],
+        ["architecture-deep-dive", "Architecture deep dive", "15 min"],
+      ];
+
+      async function load() {
+        const content = document.getElementById("content");
+        const toc = document.getElementById("toc");
+        content.innerHTML = "";
+        for (const [slug, title, time] of guides) {
+          const section = document.createElement("section");
+          section.id = slug;
+          const link = document.createElement("a");
+          link.href = "#" + slug;
+          link.textContent = title;
+          toc.appendChild(link);
+          try {
+            const res = await fetch(`../guides/${slug}.md`);
+            const md = await res.text();
+            const callout = `<div class="video-callout">📹 A ${time} video walkthrough for "${title}" can be embedded here. The written guide below is the source of truth.</div>`;
+            section.innerHTML = callout + marked.parse(md);
+          } catch (err) {
+            section.innerHTML = `<p>Could not load ${slug}.md.</p>`;
+          }
+          content.appendChild(section);
+        }
+        if (location.hash) {
+          const el = document.querySelector(location.hash);
+          if (el) el.scrollIntoView();
+        }
+      }
+      load();
+    </script>
+  </body>
+</html>

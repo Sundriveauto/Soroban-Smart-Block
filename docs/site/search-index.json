@@ -1,0 +1,100 @@
+[
+  {
+    "title": "Documentation home",
+    "section": "Overview",
+    "url": "./index.html",
+    "description": "Start here: map of all documentation.",
+    "keywords": "home index overview start"
+  },
+  {
+    "title": "Getting started",
+    "section": "Guides",
+    "url": "./guides.html#getting-started",
+    "description": "Clone, configure, and run the explorer locally.",
+    "keywords": "install setup run docker compose env quickstart onboarding"
+  },
+  {
+    "title": "Registering a contract",
+    "section": "Guides",
+    "url": "./guides.html#register-contract",
+    "description": "Add ABI metadata so events decode into plain English.",
+    "keywords": "abi registry metadata contract decode register"
+  },
+  {
+    "title": "Building with the API",
+    "section": "Guides",
+    "url": "./guides.html#building-with-the-api",
+    "description": "Query events, contracts, wallets, and tokens from the REST API.",
+    "keywords": "api rest fetch events query client websocket"
+  },
+  {
+    "title": "Architecture deep dive",
+    "section": "Guides",
+    "url": "./guides.html#architecture-deep-dive",
+    "description": "How the indexer, database, API, and frontend fit together.",
+    "keywords": "architecture indexer postgres rpc frontend pipeline design"
+  },
+  {
+    "title": "Interactive architecture explorer",
+    "section": "Reference",
+    "url": "./architecture.html",
+    "description": "Clickable system diagram with per-component details.",
+    "keywords": "architecture diagram explorer components nodes flow"
+  },
+  {
+    "title": "API playground (Swagger UI)",
+    "section": "API",
+    "url": "../api/playground.html",
+    "description": "Browse and try every endpoint with Swagger UI.",
+    "keywords": "swagger openapi playground try endpoints rest"
+  },
+  {
+    "title": "Try-it console",
+    "section": "API",
+    "url": "../api/try-it.html",
+    "description": "Send live requests, generate snippets, test the WebSocket.",
+    "keywords": "try console curl javascript python rust websocket snippet"
+  },
+  {
+    "title": "OpenAPI specification",
+    "section": "API",
+    "url": "../api/openapi.json",
+    "description": "Machine-readable OpenAPI 3.1 contract.",
+    "keywords": "openapi json spec schema contract 3.1"
+  },
+  {
+    "title": "API changelog",
+    "section": "API",
+    "url": "../api/changelog.md",
+    "description": "Version history of the HTTP and WebSocket API.",
+    "keywords": "changelog version history api releases"
+  },
+  {
+    "title": "Contributing guide",
+    "section": "Community",
+    "url": "../../CONTRIBUTING.md",
+    "description": "Workflow, commit conventions, PR checklist, scoring.",
+    "keywords": "contributing pr commit branch review scoring gamification badges"
+  },
+  {
+    "title": "Indexer reference (JSDoc)",
+    "section": "Reference",
+    "url": "../reference/indexer/index.html",
+    "description": "Generated API reference for the Node.js indexer.",
+    "keywords": "jsdoc indexer reference generated functions node"
+  },
+  {
+    "title": "Contract reference (Rustdoc)",
+    "section": "Reference",
+    "url": "../reference/contract/index.html",
+    "description": "Generated Rustdoc for the Soroban contract.",
+    "keywords": "rustdoc contract reference generated rust soroban"
+  },
+  {
+    "title": "Roadmap",
+    "section": "Project",
+    "url": "../ROADMAP.md",
+    "description": "Planned milestones and direction.",
+    "keywords": "roadmap milestones plan future"
+  }
+]

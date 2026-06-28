@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soroban Smart Block Explorer · Developer Docs</title>
+    <meta
+      name="description"
+      content="Developer documentation for the Soroban Smart Block Explorer: guides, interactive API playground, architecture, and reference."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site">
+      <span class="brand">⬡ Soroban Explorer Docs</span>
+      <span class="spacer"></span>
+      <nav>
+        <a href="./guides.html">Guides</a>
+        <a href="./architecture.html">Architecture</a>
+        <a href="../api/playground.html">API</a>
+        <a href="../../CONTRIBUTING.md">Contributing</a>
+        <a
+          href="https://github.com/Soroban-Smart-Block-Explorer/Soroban-Smart-Block"
+          >GitHub</a
+        >
+      </nav>
+      <button class="search-trigger" id="searchTrigger">
+        Search <kbd>Ctrl</kbd><kbd>K</kbd>
+      </button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Developer documentation</h1>
+        <p>
+          Everything you need to run, extend, and integrate with the Soroban
+          Smart Block Explorer, the service that turns raw Soroban XDR into
+          human-readable contract events.
+        </p>
+      </section>
+
+      <h2 class="section">Start here</h2>
+      <div class="cards">
+        <a class="card" href="./guides.html#getting-started">
+          <h3>Getting started</h3>
+          <p>Clone, configure, and run the full stack locally in minutes.</p>
+        </a>
+        <a class="card" href="./guides.html#building-with-the-api">
+          <h3>Build with the API</h3>
+          <p>Query events, contracts, wallets, and tokens from your app.</p>
+        </a>
+        <a class="card" href="./guides.html#register-contract">
+          <h3>Register a contract</h3>
+          <p>Add ABI metadata so invocations decode into plain English.</p>
+        </a>
+      </div>
+
+      <h2 class="section">API reference</h2>
+      <div class="cards">
+        <a class="card" href="../api/playground.html">
+          <h3>Swagger playground</h3>
+          <p>Browse and try every endpoint interactively.</p>
+        </a>
+        <a class="card" href="../api/try-it.html">
+          <h3>Try-it console</h3>
+          <p>Live requests, curl / JS / Python / Rust snippets, WebSocket.</p>
+        </a>
+        <a class="card" href="../api/changelog.md">
+          <h3>API changelog</h3>
+          <p>Versioned history of HTTP and WebSocket endpoints.</p>
+        </a>
+      </div>
+
+      <h2 class="section">Generated reference</h2>
+      <p style="color: var(--muted)">
+        Built from source on each deploy and published with the site. These links
+        resolve on the published GitHub Pages site.
+      </p>
+      <div class="cards">
+        <a class="card" href="../reference/indexer/index.html">
+          <h3>Indexer reference (JSDoc)</h3>
+          <p>Generated API reference for the Node.js indexer.</p>
+        </a>
+        <a class="card" href="../reference/contract/index.html">
+          <h3>Contract reference (Rustdoc)</h3>
+          <p>Generated documentation for the Soroban contract.</p>
+        </a>
+      </div>
+
+      <h2 class="section">Understand the system</h2>
+      <div class="cards">
+        <a class="card" href="./architecture.html">
+          <h3>Architecture explorer</h3>
+          <p>Clickable diagram of the indexer, database, API, and frontend.</p>
+        </a>
+        <a class="card" href="./guides.html#architecture-deep-dive">
+          <h3>Architecture deep dive</h3>
+          <p>How data flows from Stellar RPC to the React frontend.</p>
+        </a>
+        <a class="card" href="../../CONTRIBUTING.md">
+          <h3>Contributing</h3>
+          <p>Workflow, commit conventions, PR checklist, and scoring.</p>
+        </a>
+      </div>
+    </main>
+
+    <footer class="site">
+      Built on Stellar · Soroban Smart Block Explorer ·
+      <a
+        href="https://github.com/Soroban-Smart-Block-Explorer/Soroban-Smart-Block"
+        >Source on GitHub</a
+      >
+    </footer>
+
+    <div class="modal-overlay" id="searchOverlay">
+      <div class="modal">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search the docs…"
+          autocomplete="off"
+        />
+        <div class="results" id="searchResults"></div>
+      </div>
+    </div>
+
+    <script src="./search.js"></script>
+  </body>
+</html>

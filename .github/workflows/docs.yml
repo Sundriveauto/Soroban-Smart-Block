@@ -1,0 +1,96 @@
+name: Docs — Build & Deploy
+
+# Builds the static documentation site (guides, API playground, generated
+# JSDoc + Rustdoc reference) and publishes it to GitHub Pages.
+# Requires Pages to be enabled with "GitHub Actions" as the source.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "indexer/openapi.yaml"
+      - "indexer/src/**"
+      - "contracts/**"
+      - "CONTRIBUTING.md"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install indexer deps (for spec generation)
+        run: npm ci
+        working-directory: indexer
+
+      - name: Regenerate OpenAPI JSON from YAML
+        run: |
+          node -e "
+            const fs = require('fs');
+            const YAML = require('./indexer/node_modules/yaml');
+            const doc = YAML.parse(fs.readFileSync('indexer/openapi.yaml', 'utf8'));
+            fs.writeFileSync('docs/api/openapi.json', JSON.stringify(doc, null, 2) + '\n');
+            console.log('openapi.json regenerated');
+          "
+
+      - name: Assemble static site
+        run: |
+          mkdir -p _site
+          cp -r docs _site/docs
+          cp CONTRIBUTING.md _site/CONTRIBUTING.md
+          cat > _site/index.html <<'EOF'
+          <!doctype html>
+          <meta charset="utf-8" />
+          <meta http-equiv="refresh" content="0; url=./docs/site/index.html" />
+          <title>Soroban Smart Block Explorer Docs</title>
+          <a href="./docs/site/index.html">Continue to the documentation</a>
+          EOF
+
+      - name: Generate JSDoc reference for the indexer
+        continue-on-error: true
+        run: npx --yes jsdoc@4 -r indexer/src -d _site/docs/reference/indexer
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Generate Rustdoc for the contract
+        run: |
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps -p soroban-explorer-contract
+          mkdir -p _site/docs/reference/contract
+          cp -r target/doc/* _site/docs/reference/contract/ || true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

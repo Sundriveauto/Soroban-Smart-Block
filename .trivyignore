@@ -1,0 +1,5 @@
+# Transitive Ruby dependencies in @stellar/js-xdr (not directly used)
+exp: 2099-12-31T00:00:00Z
+CVE-2026-33176
+CVE-2026-33169
+CVE-2026-33170

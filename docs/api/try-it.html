@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Try-it Console · Soroban Smart Block Explorer</title>
+    <meta
+      name="description"
+      content="Interactive request console for the Soroban Smart Block Explorer API with multi-language code snippets and a WebSocket tester."
+    />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --green: #3fb950;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        line-height: 1.5;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.85rem 1.25rem;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      header .spacer {
+        flex: 1;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1.5rem 1.25rem 4rem;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin-top: 2rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.4rem;
+      }
+      label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0.75rem 0 0.25rem;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        background: #0b0f14;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.5rem 0.6rem;
+        font-family: var(--mono);
+        font-size: 0.85rem;
+      }
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      button {
+        background: var(--accent);
+        color: #0d1117;
+        border: 0;
+        border-radius: 6px;
+        padding: 0.55rem 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 1rem;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--border);
+      }
+      .params {
+        margin-top: 0.5rem;
+      }
+      pre {
+        background: #0b0f14;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.85rem;
+        overflow: auto;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+      }
+      .tabs {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+      }
+      .tabs button {
+        margin: 0;
+        background: var(--panel);
+        color: var(--muted);
+        border: 1px solid var(--border);
+        padding: 0.35rem 0.8rem;
+        font-weight: 500;
+      }
+      .tabs button.active {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+      .status {
+        font-family: var(--mono);
+        font-size: 0.85rem;
+      }
+      .status.ok {
+        color: var(--green);
+      }
+      .status.err {
+        color: #f85149;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      code {
+        font-family: var(--mono);
+        color: var(--accent);
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <strong>⬡ Try-it Console</strong>
+      <span class="spacer"></span>
+      <a href="../site/index.html">← Docs home</a>
+      <a href="./playground.html">Swagger UI</a>
+      <a href="./changelog.md">API changelog</a>
+    </header>
+    <main>
+      <h1>Interactive API console</h1>
+      <p class="hint">
+        Pick an endpoint, fill in parameters, and send a real request against a
+        running indexer. The auth helper stores your API key once and applies it
+        to every request and snippet. Nothing leaves your browser except the
+        request you send.
+      </p>
+
+      <h2>Connection</h2>
+      <div class="row">
+        <div>
+          <label for="baseUrl">Base URL</label>
+          <input id="baseUrl" value="http://localhost:3001" />
+        </div>
+        <div>
+          <label for="apiKey">API key (optional, sent as X-API-Key)</label>
+          <input id="apiKey" placeholder="paste once, applies everywhere" />
+        </div>
+      </div>
+
+      <h2>Request</h2>
+      <label for="endpoint">Endpoint</label>
+      <select id="endpoint"></select>
+      <div class="params" id="params"></div>
+      <div id="bodyWrap" style="display: none">
+        <label for="body">Request body (JSON)</label>
+        <textarea id="body">{}</textarea>
+      </div>
+      <button id="send">Send request</button>
+      <span id="status" class="status"></span>
+
+      <h2>Response</h2>
+      <pre id="response">No request sent yet.</pre>
+
+      <h2>Code snippet</h2>
+      <div class="tabs" id="langTabs">
+        <button data-lang="curl" class="active">curl</button>
+        <button data-lang="js">JavaScript</button>
+        <button data-lang="python">Python</button>
+        <button data-lang="rust">Rust</button>
+      </div>
+      <pre id="snippet"></pre>
+
+      <h2>WebSocket console</h2>
+      <p class="hint">
+        The indexer pushes live messages of the form
+        <code>{ "type": "event" | "vault_ratio" | "contract_link", "data": ... }</code>
+        . Connect to <code>ws(s)://&lt;host&gt;/?api_key=&lt;key&gt;</code>.
+      </p>
+      <div class="row">
+        <div>
+          <label for="wsUrl">WebSocket URL</label>
+          <input id="wsUrl" value="ws://localhost:3001/" />
+        </div>
+        <div style="display: flex; align-items: flex-end; gap: 0.5rem">
+          <button id="wsConnect" style="margin: 0">Connect</button>
+          <button id="wsClose" class="secondary" style="margin: 0">
+            Disconnect
+          </button>
+        </div>
+      </div>
+      <span id="wsStatus" class="status"></span>
+      <pre id="wsLog">Not connected.</pre>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let spec = null;
+      let operations = [];
+      let currentLang = "curl";
+
+      async function loadSpec() {
+        const res = await fetch("./openapi.yaml");
+        const yamlText = await res.text();
+        spec = jsyaml.load(yamlText);
+        const base = spec.servers && spec.servers[0] && spec.servers[0].url;
+        if (base) $("baseUrl").value = base.replace("https://", "http://");
+        operations = [];
+        for (const [path, item] of Object.entries(spec.paths || {})) {
+          for (const [method, op] of Object.entries(item)) {
+            if (!["get", "post", "put", "delete", "patch"].includes(method))
+              continue;
+            operations.push({ path, method, op });
+          }
+        }
+        const sel = $("endpoint");
+        sel.innerHTML = operations
+          .map(
+            (o, i) =>
+              `<option value="${i}">${o.method.toUpperCase()} ${o.path} — ${(o.op.summary || "").replace(/"/g, "")}</option>`,
+          )
+          .join("");
+        renderParams();
+      }
+
+      function pathParams(path) {
+        return (path.match(/{(\w+)}/g) || []).map((s) => s.slice(1, -1));
+      }
+
+      function currentOp() {
+        return operations[Number($("endpoint").value)] || operations[0];
+      }
+
+      function renderParams() {
+        const o = currentOp();
+        if (!o) return;
+        const container = $("params");
+        container.innerHTML = "";
+        const params = o.op.parameters || [];
+        for (const name of pathParams(o.path)) {
+          if (!params.find((p) => p.name === name))
+            params.push({ name, in: "path", required: true });
+        }
+        for (const p of params) {
+          const wrap = document.createElement("div");
+          const req = p.required ? " *" : "";
+          wrap.innerHTML = `<label>${p.name} <span class="hint">(${p.in}${req})</span></label>`;
+          const input = document.createElement("input");
+          input.dataset.name = p.name;
+          input.dataset.in = p.in;
+          input.placeholder = (p.schema && p.schema.type) || "";
+          wrap.appendChild(input);
+          container.appendChild(wrap);
+        }
+        $("bodyWrap").style.display = o.op.requestBody ? "block" : "none";
+        updateSnippet();
+      }
+
+      function buildUrl() {
+        const o = currentOp();
+        let path = o.path;
+        const query = [];
+        document.querySelectorAll("#params input").forEach((input) => {
+          const v = input.value.trim();
+          if (!v) return;
+          if (input.dataset.in === "path") {
+            path = path.replace(`{${input.dataset.name}}`, encodeURIComponent(v));
+          } else {
+            query.push(
+              `${encodeURIComponent(input.dataset.name)}=${encodeURIComponent(v)}`,
+            );
+          }
+        });
+        const base = $("baseUrl").value.replace(/\/$/, "");
+        return base + path + (query.length ? "?" + query.join("&") : "");
+      }
+
+      function requestInit() {
+        const o = currentOp();
+        const headers = {};
+        const key = $("apiKey").value.trim();
+        if (key) headers["X-API-Key"] = key;
+        const init = { method: o.method.toUpperCase(), headers };
+        if (o.op.requestBody) {
+          headers["Content-Type"] = "application/json";
+          init.body = $("body").value;
+        }
+        return init;
+      }
+
+      async function send() {
+        const url = buildUrl();
+        const init = requestInit();
+        $("status").textContent = "Sending…";
+        $("status").className = "status";
+        try {
+          const res = await fetch(url, init);
+          const text = await res.text();
+          let pretty = text;
+          try {
+            pretty = JSON.stringify(JSON.parse(text), null, 2);
+          } catch (_) {}
+          $("response").textContent = pretty || "(empty body)";
+          $("status").textContent = `${res.status} ${res.statusText}`;
+          $("status").className = "status " + (res.ok ? "ok" : "err");
+        } catch (err) {
+          $("response").textContent = String(err);
+          $("status").textContent = "Network error (is the indexer running?)";
+          $("status").className = "status err";
+        }
+      }
+
+      function snippet(lang) {
+        const url = buildUrl();
+        const init = requestInit();
+        const method = init.method;
+        const key = $("apiKey").value.trim();
+        const body = init.body;
+        if (lang === "curl") {
+          let s = `curl -X ${method} "${url}"`;
+          if (key) s += ` \\\n  -H "X-API-Key: ${key}"`;
+          if (body) s += ` \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
+          return s;
+        }
+        if (lang === "js") {
+          const opts = { method, headers: init.headers };
+          if (body) opts.body = body;
+          return `const res = await fetch("${url}", ${JSON.stringify(opts, null, 2)});\nconst data = await res.json();\nconsole.log(data);`;
+        }
+        if (lang === "python") {
+          let s = `import requests\n\nres = requests.${method.toLowerCase()}(\n    "${url}",`;
+          if (key) s += `\n    headers={"X-API-Key": "${key}"},`;
+          if (body) s += `\n    json=${body},`;
+          s += `\n)\nprint(res.json())`;
+          return s;
+        }
+        if (lang === "rust") {
+          let s = `// Cargo.toml: reqwest = { version = "0.12", features = ["json"] }, tokio = { version = "1", features = ["full"] }\nlet client = reqwest::Client::new();\nlet res = client\n    .${method.toLowerCase()}("${url}")`;
+          if (key) s += `\n    .header("X-API-Key", "${key}")`;
+          if (body) s += `\n    .body(r#"${body}"#)`;
+          s += `\n    .send()\n    .await?;\nprintln!("{}", res.text().await?);`;
+          return s;
+        }
+        return "";
+      }
+
+      function updateSnippet() {
+        $("snippet").textContent = snippet(currentLang);
+      }
+
+      // WebSocket console
+      let socket = null;
+      function wsLog(line) {
+        const el = $("wsLog");
+        if (el.textContent === "Not connected.") el.textContent = "";
+        el.textContent += line + "\n";
+        el.scrollTop = el.scrollHeight;
+      }
+      function wsConnect() {
+        const base = $("wsUrl").value.trim();
+        const key = $("apiKey").value.trim();
+        const url = base + (key ? `?api_key=${encodeURIComponent(key)}` : "");
+        try {
+          socket = new WebSocket(url);
+        } catch (err) {
+          $("wsStatus").textContent = String(err);
+          $("wsStatus").className = "status err";
+          return;
+        }
+        socket.onopen = () => {
+          $("wsStatus").textContent = "Connected";
+          $("wsStatus").className = "status ok";
+          wsLog("[open] connected to " + base);
+        };
+        socket.onmessage = (e) => wsLog("[message] " + e.data);
+        socket.onerror = () => {
+          $("wsStatus").textContent = "Socket error";
+          $("wsStatus").className = "status err";
+        };
+        socket.onclose = (e) => {
+          $("wsStatus").textContent = `Closed (${e.code})`;
+          $("wsStatus").className = "status";
+          wsLog("[close] " + e.code);
+        };
+      }
+      function wsClose() {
+        if (socket) socket.close();
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        loadSpec().catch((err) => {
+          $("response").textContent =
+            "Could not load openapi.json: " + err.message;
+        });
+        $("endpoint").addEventListener("change", renderParams);
+        $("params").addEventListener("input", updateSnippet);
+        $("baseUrl").addEventListener("input", updateSnippet);
+        $("apiKey").addEventListener("input", updateSnippet);
+        $("body").addEventListener("input", updateSnippet);
+        $("send").addEventListener("click", send);
+        $("langTabs").addEventListener("click", (e) => {
+          if (e.target.dataset.lang) {
+            currentLang = e.target.dataset.lang;
+            document
+              .querySelectorAll("#langTabs button")
+              .forEach((b) => b.classList.toggle("active", b === e.target));
+            updateSnippet();
+          }
+        });
+        $("wsConnect").addEventListener("click", wsConnect);
+        $("wsClose").addEventListener("click", wsClose);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+
+export default [
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
+  {
+    files: [      "src/components/AddressConnectionGraph.tsx", "src/components/ContractDependencyGraph3D.tsx", "src/components/DependencyVisualizer.tsx", "src/components/FileExplorer.tsx", "src/components/RawDataViewer.tsx", "src/components/ReadContract.tsx", "src/components/SimulateButton.tsx", "src/components/WriteContract.tsx", "src/pages/ContractPage.tsx", "src/pages/RpcMetricsDashboard.tsx", "src/pages/SandboxPage.tsx", "src/pages/SetupPage.tsx", "src/pages/XdrInspector.tsx", "src/services/dependencies.ts", "src/services/sandbox-api.ts", "src/services/webcontainer.ts", "src/env.d.ts", "test/api.test.ts", "test/hooks.test.tsx", "test/ErrorBoundary.test.tsx"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  {
+    ignores: ["node_modules/**", "dist/**"],
+  },
+];
