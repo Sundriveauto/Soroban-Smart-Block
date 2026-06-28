@@ -153,6 +153,7 @@
         color: var(--accent);
       }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   </head>
   <body>
     <header>
@@ -235,8 +236,9 @@
       let currentLang = "curl";
 
       async function loadSpec() {
-        const res = await fetch("./openapi.json");
-        spec = await res.json();
+        const res = await fetch("./openapi.yaml");
+        const yamlText = await res.text();
+        spec = jsyaml.load(yamlText);
         const base = spec.servers && spec.servers[0] && spec.servers[0].url;
         if (base) $("baseUrl").value = base.replace("https://", "http://");
         operations = [];

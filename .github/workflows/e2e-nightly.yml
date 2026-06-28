@@ -26,6 +26,11 @@ on:
         required: false
         type: boolean
         default: true
+      integration_test:
+        description: "Run API integration tests"
+        required: false
+        type: boolean
+        default: true
 
 concurrency:
   group: e2e-nightly-${{ github.ref }}
@@ -191,6 +196,72 @@ jobs:
           echo "## Memory Stability Check"
           docker stats --no-stream soroban-indexer || true
 
+  # ── API Integration Test ─────────────────────────────────────────────────
+  integration-test:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event_name == 'schedule' || github.event.inputs.integration_test == 'true'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: soroban
+          POSTGRES_PASSWORD: soroban_secret
+          POSTGRES_DB: soroban_explorer
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache e2e + indexer node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            indexer/node_modules
+            e2e/node_modules
+          key: integration-20-${{ hashFiles('indexer/package-lock.json', 'e2e/package-lock.json') }}
+          restore-keys: integration-20-
+
+      - name: Install dependencies
+        run: |
+          cd indexer && npm install
+          cd ../e2e && npm install
+
+      - name: Start indexer
+        run: |
+          npm start > indexer.log 2>&1 &
+          sleep 10
+          curl -f http://localhost:3001/health
+        working-directory: indexer
+        env:
+          DATABASE_URL: postgres://soroban:soroban_secret@localhost:5432/soroban_explorer
+          NODE_ENV: test
+
+      - name: Run API integration tests
+        run: npm run test:api
+        working-directory: e2e
+        env:
+          INDEXER_URL: http://localhost:3001
+
+      - name: Upload integration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-results
+          path: e2e/test-results/
+          retention-days: 30
+
   # ── Synthetic Monitoring ───────────────────────────────────────────────────
   synthetic:
     name: Synthetic Event Monitoring (Production)
@@ -301,7 +372,7 @@ jobs:
     name: E2E Results Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [spike-test, soak-test, synthetic, percy]
+    needs: [spike-test, soak-test, integration-test, synthetic, percy]
     steps:
       - name: Check test results
         run: |
@@ -311,6 +382,7 @@ jobs:
           echo "|------|--------|"
           echo "| Spike Test | ${{ needs.spike-test.result }} |"
           echo "| Soak Test | ${{ needs.soak-test.result }} |"
+          echo "| API Integration | ${{ needs.integration-test.result }} |"
           echo "| Synthetic | ${{ needs.synthetic.result }} |"
           echo "| Percy | ${{ needs.percy.result }} |"
 

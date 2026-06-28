@@ -6,6 +6,7 @@
   "scripts": {
     "setup": "node scripts/setup.js",
     "doctor": "node scripts/doctor.js",
+    "configure-branch-protection": "node scripts/configure-branch-protection.js --branch main",
     "dev": "make dev"
   },
   "devDependencies": {

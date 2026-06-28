@@ -52,6 +52,28 @@ Allowed types: `feature`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`,
 
 Examples: `feature/event-search`, `fix/ws-reconnect`, `docs/api-reference`.
 
+## Branch protection rules for `main`
+
+The `main` branch is protected to keep CI green and maintain review quality.
+Required settings:
+
+- Require pull request reviews before merge
+- Require status checks to pass before merge:
+  - `Test`
+  - `Build`
+  - `Security`
+- Disallow force pushes to `main`
+- Enforce administrators
+
+Maintainers can apply these settings manually in GitHub branch protection
+configuration, or run the repository helper:
+
+```bash
+GITHUB_TOKEN=$GH_TOKEN npm run configure-branch-protection
+```
+
+This helper uses the GitHub API to configure protection for `main`.
+
 ## Commit and PR title conventions
 
 This project follows [Conventional Commits](https://www.conventionalcommits.org/).
@@ -101,6 +123,7 @@ npx prettier --check "indexer/src/**/*.{js,json}" "frontend/src/**/*.{ts,tsx}" "
 - [ ] Indexer: `eslint` zero warnings and `npm test` pass.
 - [ ] Frontend: `eslint` zero warnings and `npm run build` pass.
 - [ ] Prettier formatting passes.
+- [ ] OpenAPI specification (`docs/api/openapi.yaml`) is updated and in sync with any endpoint changes.
 - [ ] Documentation is updated for user-facing or API changes.
 - [ ] The PR description explains the change and links the issue it closes.
 - [ ] No secrets or `.env` values are committed.

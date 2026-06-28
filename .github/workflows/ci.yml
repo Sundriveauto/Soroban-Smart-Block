@@ -42,6 +42,10 @@ jobs:
           cargo clippy
           cargo test -p soroban-explorer-contract
 
+      - name: Rustdoc build
+        run: |
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps -p soroban-explorer-contract
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -67,10 +71,12 @@ jobs:
             exit 1
           fi
 
+      - name: Validate OpenAPI spec
+        run: npx -y @apidevtools/swagger-parser-cli validate docs/api/openapi.yaml
+
       - name: Indexer tests
         run: npm test
         working-directory: indexer
-
       - name: Frontend typecheck + build
         run: npm run build
         working-directory: frontend

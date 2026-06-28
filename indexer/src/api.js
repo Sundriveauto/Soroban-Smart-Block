@@ -42,16 +42,6 @@ import { registry } from "./metrics.js";
 import pg from "pg";
 import { getBurnAlerts } from "./burnDetector.js";
 import { formatAmount } from "./formatAmount.js";
-import { auditLoggerMiddleware } from "./audit/auditLogger.js";
-import { apiKeyAuthenticator } from "./auth/apiKeyAuth.js";
-import { geoIpRateLimiter } from "./rateLimit/geoIpLimiter.js";
-import { concurrentRequestLimiter } from "./rateLimit/concurrentLimiter.js";
-import { tokenBucketMiddleware } from "./rateLimit/tokenBucket.js";
-import { graphqlComplexityLimiter } from "./rateLimit/graphqlComplexity.js";
-import { abuseDetector } from "./rateLimit/abuseDetector.js";
-import { rateLimitHeaderWriter } from "./rateLimit/headers.js";
-import registerAdminRoutes from "./routes/admin.js";
-import { stripeWebhookRouter } from "./billing/stripeWebhook.js";
 
 const PORT = process.env.PORT || 3001;
 const VERIFY_ON_UPLOAD = process.env.VERIFY_ABI !== "false";
@@ -143,15 +133,46 @@ const writeLimiter = rateLimit({
   message: { error: "Too many requests" },
 });
 
-export function startApi() {
+export function createApi({ logDestination, dbOverride } = {}) {
   const app = express();
   app.use(helmet());
-  app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
+  const isWildcard = process.env.CORS_ORIGINS === '*';
+  const allowedOrigins = isWildcard
+    ? []
+    : process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+      : [];
+
+  const corsOptionsDelegate = (req, callback) => {
+    const corsOptions = {
+      methods: ['GET', 'POST', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+      maxAge: 86400,
+    };
+
+    if (isWildcard) {
+      corsOptions.origin = '*';
+      corsOptions.credentials = false;
+    } else {
+      const origin = req.header('Origin');
+      const isAllowed = origin && allowedOrigins.includes(origin);
+      corsOptions.origin = isAllowed ? true : false;
+      if (isAllowed) {
+        corsOptions.credentials = true;
+      }
+    }
+    callback(null, corsOptions);
+  };
+
+  app.use(cors(corsOptionsDelegate));
 
   // Stripe webhook requires raw body — mount BEFORE express.json()
   app.use("/api/billing", stripeWebhookRouter);
 
   app.use(express.json());
+  app.use(requestIdMiddleware);
+  app.use(createHttpLogger(logDestination));
+  app.use(metricsMiddleware);
 
   // ── Auth & Rate Limiting Middleware Stack ─────────────────────────────────
   // Order matters: audit logger sets _startTime first, then auth resolves tier,
@@ -173,7 +194,7 @@ export function startApi() {
   registerAdminRoutes(app);
 
   // ── API Documentation ────────────────────────────────────────────────────────
-  const openApiPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../openapi.yaml");
+  const openApiPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/api/openapi.yaml");
   if (fs.existsSync(openApiPath)) {
     const yaml = fs.readFileSync(openApiPath, "utf8");
     import("yaml")
@@ -196,7 +217,14 @@ export function startApi() {
   });
 
   // ── Health check (used by Docker Compose) ──────────────────────────────
-  app.get("/health", (_req, res) => res.json({ status: "ok" }));
+  app.get("/health", async (_req, res) => {
+    try {
+      await db.query("SELECT 1");
+      res.json({ status: "ok" });
+    } catch (e) {
+      res.status(503).json({ error: "Database connection failed" });
+    }
+  });
 
   // ── Prometheus metrics ────────────────────────────────────────────────────
   // Scraped by Prometheus or any OpenMetrics-compatible collector.
@@ -285,7 +313,14 @@ export function startApi() {
     async (req, res) => {
       try {
         const ev = await db.getEvent(Number(req.params.seq));
-        if (!ev) return res.status(404).json({ error: "Not found" });
+        if (!ev) {
+          return res.status(404).json({
+            type: "about:blank",
+            title: "Not Found",
+            status: 404,
+            detail: `Event sequence ${req.params.seq} not found`
+          });
+        }
         res.json(ev);
       } catch (e) {
         res.status(500).json({ error: e.message });
@@ -297,7 +332,7 @@ export function startApi() {
   // Returns the ZK host function call list and cost delta for a single event.
   app.get("/api/events/:seq/zk-costs", async (req, res) => {
     try {
-      const ev = await db.getEvent(Number(req.params.seq));
+      const ev = await data.getEvent(Number(req.params.seq));
       if (!ev) return res.status(404).json({ error: "Not found" });
       if (!ev.zk_host_calls) return res.json({ calls: [], delta: null });
       const zk = typeof ev.zk_host_calls === "string" ? JSON.parse(ev.zk_host_calls) : ev.zk_host_calls;
@@ -504,7 +539,12 @@ export function startApi() {
       const { id, functions } = req.body;
 
       if (!id || !functions) {
-        return res.status(400).json({ error: "Missing id or functions" });
+        return res.status(422).json({ error: "Missing id or functions" });
+      }
+
+      const existing = await db.getContractMeta(id);
+      if (existing) {
+        return res.status(409).json({ error: "Contract already exists" });
       }
 
       // Verify ABI against on-chain spec if enabled
@@ -713,10 +753,9 @@ export function startApi() {
     }
   });
 
-  // GET /api/wallet/:address
   app.get("/api/wallet/:address", async (req, res) => {
     try {
-      const events = await db.getWalletEvents(req.params.address);
+      const events = await data.getWalletEvents(req.params.address);
       res.json(events);
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -778,12 +817,19 @@ export function startApi() {
   // `after` is the opaque seq cursor returned as `next_cursor` in the previous page.
   app.get("/api/v1/events", async (req, res) => {
     try {
+      if (req.query.limit !== undefined) {
+        const parsedLimit = Number(req.query.limit);
+        if (isNaN(parsedLimit) || parsedLimit <= 0 || parsedLimit > 200) {
+          return res.status(422).json({ error: "Invalid limit" });
+        }
+      }
+
       const result = await db.getEventsCursor({
         contract: req.query.contract || undefined,
         fn: req.query.fn || undefined,
         type: req.query.type || undefined,
         after_seq: req.query.after ? Number(req.query.after) : 0,
-        limit: req.query.limit ? Math.min(Number(req.query.limit), 200) : 25,
+        limit: req.query.limit ? Number(req.query.limit) : 25,
       });
       res.json(result);
     } catch (e) {
