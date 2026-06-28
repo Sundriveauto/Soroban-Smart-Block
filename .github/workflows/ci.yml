@@ -36,11 +36,40 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Rust fmt + clippy + test
+      - name: Rust fmt + clippy
         run: |
           cargo fmt --check
           cargo clippy
-          cargo test -p soroban-explorer-contract
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Run tests with coverage
+        run: |
+          cargo llvm-cov --workspace --lcov --output-path lcov.info
+          cargo llvm-cov report --summary-only | tee coverage_summary.txt
+          
+      - name: Check coverage threshold (80%)
+        run: |
+          COVERAGE=$(grep -oP 'Lines\s+\K[\d.]+(?=%)' coverage_summary.txt || echo "0")
+          echo "Line coverage: ${COVERAGE}%"
+          awk -v cov="$COVERAGE" 'BEGIN { 
+            if (cov+0 < 80) { 
+              print "FAIL: coverage " cov "% < 80%"; 
+              exit 1 
+            } else { 
+              print "PASS: coverage " cov "%" 
+            } 
+          }'
+
+      - name: Upload coverage to CodeCov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          flags: explorer-contract
+          name: explorer-coverage
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -71,8 +100,17 @@ jobs:
         run: npx -y @apidevtools/swagger-parser-cli validate docs/api/openapi.yaml
 
       - name: Indexer tests
-        run: npm test
+        run: npm test -- --coverage --coverageReporters=lcov
         working-directory: indexer
+
+      - name: Upload indexer coverage to CodeCov
+        uses: codecov/codecov-action@v4
+        with:
+          files: indexer/coverage/lcov.info
+          flags: indexer
+          name: indexer-coverage
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Frontend typecheck + build
         run: npm run build
         working-directory: frontend

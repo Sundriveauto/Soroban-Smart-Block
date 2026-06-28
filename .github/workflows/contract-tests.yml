@@ -55,11 +55,20 @@ jobs:
           echo "Line coverage: ${COVERAGE}%"
           awk -v cov="$COVERAGE" 'BEGIN { if (cov+0 < 85) { print "FAIL: coverage " cov "% < 85%"; exit 1 } else { print "PASS: coverage " cov "%" } }'
 
-      - name: Upload coverage report
+      - name: Upload coverage report (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: contracts/ticket/lcov.info
+
+      - name: Upload coverage to CodeCov
+        uses: codecov/codecov-action@v4
+        with:
+          files: contracts/ticket/lcov.info
+          flags: contracts
+          name: contract-coverage
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # ─── Mutation testing ─────────────────────────────────────────────────────────
   mutation:
