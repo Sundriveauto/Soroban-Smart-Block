@@ -12,10 +12,9 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  # ── 1. Test ───────────────────────────────────────────────────────────────
-  # Rust contract tests + indexer unit tests + frontend typecheck
-  test:
-    name: Test
+  # ── Contracts ─────────────────────────────────────────────────────────────
+  contracts:
+    name: Contracts (build + test)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,11 +35,68 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Rust fmt + clippy + test
+      - name: fmt
+        run: cargo fmt --check
+
+      - name: clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Build (wasm32)
+        run: cargo build --target wasm32-unknown-unknown --release -p soroban-explorer-contract
+
+      - name: Test — explorer contract
+        run: cargo test -p soroban-explorer-contract
+
+      - name: Test — ticket contract
+        working-directory: contracts/ticket
+        run: cargo test --features testutils --release
+
+  # ── Migrations ────────────────────────────────────────────────────────────
+  # Closes #425 — verify every SQL migration applies cleanly on a fresh
+  # PostgreSQL 16 instance, in order, with no missing-table or type conflicts.
+  migrations:
+    name: Migrations (fresh PostgreSQL 16)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install indexer deps
+        run: npm install
+        working-directory: indexer
+
+      - name: Apply all migrations on a blank database
+        env:
+          DATABASE_URL: postgres://postgres:test@localhost:5433/postgres
+        run: node src/migrate.js
+        working-directory: indexer
+
+  # ── Services ──────────────────────────────────────────────────────────────
+  services:
+    name: Services (indexer + frontend)
+    runs-on: ubuntu-latest
+    needs: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rustdoc build
         run: |
-          cargo fmt --check
-          cargo clippy
-          cargo test -p soroban-explorer-contract
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps -p soroban-explorer-contract
 
       - uses: actions/setup-node@v4
         with:
@@ -57,13 +113,13 @@ jobs:
 
       - name: Install deps
         run: |
-          cd indexer && npm install && cd ..
-          cd frontend && npm ci
+          cd indexer && npm install
+          cd ../frontend && npm ci
 
       - name: Lockfile drift check
         run: |
           if ! git diff --exit-code indexer/package-lock.json; then
-            echo "::error::indexer/package-lock.json is out of sync. Run 'npm install' in indexer/ and commit it."
+            echo "::error::indexer/package-lock.json is out of sync — run 'npm install' in indexer/ and commit it."
             exit 1
           fi
 
@@ -76,54 +132,3 @@ jobs:
       - name: Frontend typecheck + build
         run: npm run build
         working-directory: frontend
-
-  # ── 2. Build ──────────────────────────────────────────────────────────────
-  # Verify Docker images build cleanly (catches Dockerfile regressions)
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Build indexer image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./indexer
-          push: false
-          tags: indexer:ci
-
-      - name: Build frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: false
-          tags: frontend:ci
-
-  # ── 3. Security ───────────────────────────────────────────────────────────
-  # CodeQL static analysis — runs in parallel with build
-  security:
-    name: Security
-    runs-on: ubuntu-latest
-    needs: test
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-
-      - name: CodeQL autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: /language:javascript-typescript

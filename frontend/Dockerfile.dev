@@ -1,18 +1,10 @@
-# Soroban Explorer Frontend — Development Image
-# Uses Vite dev server for HMR.
-FROM node:20-alpine
+FROM node:18-alpine
+
 WORKDIR /app
-
-# wget is needed for Docker healthcheck
-RUN apk add --no-cache wget
-
-# Install deps first (layer caching)
 COPY package*.json ./
-RUN npm ci
+RUN npm install
+RUN apk add --no-cache curl
 
-# Copy the rest of the source
 COPY . .
 
-EXPOSE 5173
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["npm", "run", "dev", "--", "--host"]

@@ -8,7 +8,7 @@ import { useEventStream } from "../hooks/useEventStream";
 
 const FUNCTIONS = ["", "swap", "transfer", "mint", "burn", "stake", "unstake", "wrap_native", "unwrap_native"];
 
-transaction type filter
+// transaction type filter
 type TxType = "all" | "soroban" | "classic";
 
 const TYPE_LABELS: { key: TxType; label: string; title: string }[] = [
@@ -45,7 +45,7 @@ export default function Home() {
       }),
   });
 
-  invalidate the event list when a live event arrives on page 1
+  // invalidate the event list when a live event arrives on page 1
   const handleLiveEvent = useCallback(
     (ev: DecodedEvent) => {
       if (page === 1 && (!fnFilter || ev.function === fnFilter)) {

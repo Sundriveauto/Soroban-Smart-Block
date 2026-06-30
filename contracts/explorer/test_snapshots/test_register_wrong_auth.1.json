@@ -226,6 +226,14 @@
                   "map": [
                     {
                       "key": {
+                        "symbol": "abi_version"
+                      },
+                      "val": {
+                        "u32": 0
+                      }
+                    },
+                    {
+                      "key": {
                         "symbol": "description"
                       },
                       "val": {
@@ -238,6 +246,14 @@
                       },
                       "val": {
                         "vec": []
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "min_ledger"
+                      },
+                      "val": {
+                        "u32": 0
                       }
                     },
                     {
@@ -392,6 +408,14 @@
                       "map": [
                         {
                           "key": {
+                            "symbol": "abi_version"
+                          },
+                          "val": {
+                            "u32": 0
+                          }
+                        },
+                        {
+                          "key": {
                             "symbol": "description"
                           },
                           "val": {
@@ -404,6 +428,14 @@
                           },
                           "val": {
                             "vec": []
+                          }
+                        },
+                        {
+                          "key": {
+                            "symbol": "min_ledger"
+                          },
+                          "val": {
+                            "u32": 0
                           }
                         },
                         {
