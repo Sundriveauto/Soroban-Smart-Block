@@ -249,7 +249,7 @@ export interface PrivilegedRole {
   updated_at: string;
 }
 
-// source verification signature
+// // source verification signature
 export interface SourceVerification {
   signer: string;
   signature: string;
@@ -338,6 +338,58 @@ export interface GraphEdge {
 export interface AddressGraphData {
   nodes: GraphNode[];
   edges: GraphEdge[];
+}
+
+// Sub-invocation filter options for the advanced search endpoint
+export interface SubInvocationFilter {
+  contract?: string;
+  function?: string;
+  depth_min?: number;
+  depth_max?: number;
+  gas_min?: number;
+  gas_max?: number;
+  date_from?: string;
+  date_to?: string;
+  arg_query?: string;
+  has_reentrancy?: boolean;
+  tx_hash?: string;
+  ledger_min?: number;
+  ledger_max?: number;
+}
+
+// Extended sub-invocation record with gas and reentrancy metadata
+export interface SubInvocationExtended extends SubInvocation {
+  cpu_instructions?: number;
+  mem_bytes?: number;
+  fee_charged?: number;
+  has_reentrancy?: boolean;
+}
+
+// Aggregate analytics across all sub-invocations
+export interface SubInvocationAnalytics {
+  total: number;
+  avg_depth: number;
+  max_depth: number;
+  top_contracts: { contract_id: string; call_count: number }[];
+  depth_distribution: { depth: number; count: number }[];
+}
+
+// Per-transaction call-path metrics
+export interface SubInvocationCallMetrics {
+  tx_hash: string;
+  total_calls: number;
+  max_depth: number;
+  unique_contracts: number;
+  has_reentrancy: boolean;
+  total_cpu?: number;
+  total_fee?: number;
+}
+
+// Cross-transaction tree diff result
+export interface TransactionTreeDiff {
+  added: SubInvocationExtended[];
+  removed: SubInvocationExtended[];
+  changed: { a: SubInvocationExtended; b: SubInvocationExtended }[];
 }
 
 export const api = {
