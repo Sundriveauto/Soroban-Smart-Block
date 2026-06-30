@@ -70,7 +70,7 @@ e2e/
 ## Architecture rules to preserve
 
 - **`indexer/src/db.js`** is the single database module. Do not create a `db/` subdirectory or split it — a split was attempted before and abandoned.
-- **`indexer/src/api.js`** owns all HTTP routes. Do not create a `routes/` subdirectory — same reason.
+- **`indexer/src/api.js`** owns all HTTP route definitions. The only exception is `indexer/src/routes/admin.js`, which holds auth-gated admin routes and is imported by `api.js`. Do not add more files to `routes/`.
 - Every new page in `frontend/src/pages/` must have a corresponding `<Route>` in [frontend/src/App.tsx](frontend/src/App.tsx).
 - SQL changes belong in a new numbered migration file under `indexer/migrations/`, applied automatically by `db.init()` at startup.
 - The Cargo workspace (`Cargo.toml` at the root) only includes `contracts/explorer`. The `contracts/ticket` crate is independent and tested separately.

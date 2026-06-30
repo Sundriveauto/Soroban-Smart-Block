@@ -76,8 +76,17 @@ Soroban Smart Block Explorer decodes contract calls on the fly using an ABI-like
 ```bash
 git clone https://github.com/your-org/Soroban-Smart-Block
 cd Soroban-Smart-Block
+
+# Root .env — used by Docker Compose
 cp .env.example .env
-# Edit .env with your RPC URL and DATABASE_URL
+
+# Indexer .env — used when running the indexer directly (npm start)
+cp indexer/.env.example indexer/.env
+
+# Frontend .env — sets the indexer URL for the Vite dev server
+cp frontend/.env.example frontend/.env
+
+# Edit all three files with your RPC URL, DATABASE_URL, and CONTRACT_ID
 ```
 
 ### 2. Build & deploy the contract
