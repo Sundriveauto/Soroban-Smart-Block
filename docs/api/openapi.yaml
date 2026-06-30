@@ -362,13 +362,17 @@ paths:
           description: Wallet address
       responses:
         "200":
-          description: Array of events matching the wallet address
+          description: Events matching the wallet address (empty array if none)
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/DecodedEvent"
+                type: object
+                required: [events]
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DecodedEvent"
         "400":
           description: Invalid wallet address format
           content:
