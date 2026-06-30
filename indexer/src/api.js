@@ -10,7 +10,7 @@ import swaggerUi from "swagger-ui-express";
 import { db } from "./db.js";
 import { analyzeSourceDependencies } from "./dependencyScanner.js";
 import { fetchTokenMetadata } from "./sep41Metadata.js";
-import { attachWebSocketServer, publishTransactionStatus, getTransactionStatus, onTransactionStatus, offTransactionStatus } from "./wsEvents.js";
+import { attachWebSocketServer, getTransactionStatus, onTransactionStatus, offTransactionStatus } from "./wsEvents.js";
 import { verifyAbi } from "./verify_abi.js";
 import { getMetrics } from "./rpcMetrics.js";
 import { getRpcNodeStatus } from "./rpcMultiNode.js";
@@ -42,16 +42,35 @@ import { registry } from "./metrics.js";
 import pg from "pg";
 import { getBurnAlerts } from "./burnDetector.js";
 import { formatAmount } from "./formatAmount.js";
+import { getHealthStatus, getLivenessStatus, getReadinessStatus } from "./health.js";
+import { randomUUID } from "crypto";
+
+function requestIdMiddleware(req, _res, next) {
+  req.id = req.headers["x-request-id"] || randomUUID();
+  next();
+}
+
+function createHttpLogger(_logDestination) {
+  return (req, res, next) => {
+    res.on("finish", () => {
+      console.log(`[api] ${req.method} ${req.url} ${res.statusCode}`);
+    });
+    next();
+  };
+}
+
+function metricsMiddleware(_req, _res, next) {
+  next();
+}
 
 const PORT = process.env.PORT || 3001;
-const VERIFY_ON_UPLOAD = process.env.VERIFY_ABI !== "false";
 const RPC_URL = process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
-const API_KEY = process.env.API_KEY;
 
 function requireApiKey(req, res, next) {
-  if (!API_KEY) return next();
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return next();
   const key = req.headers["x-api-key"];
-  if (!key || key !== API_KEY) return res.status(401).json({ error: "Unauthorized" });
+  if (!key || key !== apiKey) return res.status(401).json({ error: "Unauthorized" });
   next();
 }
 
@@ -217,8 +236,6 @@ export function createApi({ logDestination, dbOverride } = {}) {
   });
 
   // ── Health check endpoints ──────────────────────────────────────────────
-  // Import health check module
-  const { getHealthStatus, getLivenessStatus, getReadinessStatus } = await import("./health.js");
 
   // Comprehensive health check with dependency status
   app.get("/health", async (_req, res) => {
@@ -578,7 +595,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       }
 
       // Verify ABI against on-chain spec if enabled
-      if (VERIFY_ON_UPLOAD) {
+      if (process.env.VERIFY_ABI !== "false") {
         const verification = await verifyAbi(id, functions);
 
         if (!verification.valid) {
