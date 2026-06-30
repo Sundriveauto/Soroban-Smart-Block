@@ -44,3 +44,10 @@ yarn-error.log*
 dist/
 build/
 .cache/
+
+# Local AI/agent artifacts
+.kiro/
+update_issues/
+
+# Local planning docs (stay on this machine only)
+plans/

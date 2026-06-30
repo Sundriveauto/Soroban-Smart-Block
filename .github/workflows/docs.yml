@@ -73,9 +73,8 @@ jobs:
           toolchain: stable
 
       - name: Generate Rustdoc for the contract
-        continue-on-error: true
         run: |
-          cargo doc --no-deps -p soroban-explorer-contract
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps -p soroban-explorer-contract
           mkdir -p _site/docs/reference/contract
           cp -r target/doc/* _site/docs/reference/contract/ || true
 

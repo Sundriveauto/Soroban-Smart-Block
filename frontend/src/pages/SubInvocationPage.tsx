@@ -6,7 +6,6 @@ import SubInvocationGraph from "../components/SubInvocationGraph";
 import SubInvocationFlamegraph from "../components/SubInvocationFlamegraph";
 import SubInvocationAnalytics from "../components/SubInvocationAnalytics";
 import SubInvocationDiff from "../components/SubInvocationDiff";
-import SSEStatusIndicator from "../components/SSEStatusIndicator";
 import type { SubInvocationExtended } from "../api";
 import { useSubInvocationStream } from "../hooks/useSubInvocationStream";
 
@@ -59,7 +58,16 @@ export default function SubInvocationPage() {
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <SSEStatusIndicator />
+          <span
+            title={connected ? "SSE connected" : streamError ? "SSE error" : "SSE disconnected"}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: streamError ? "#ef4444" : connected ? "#22c55e" : "#f59e0b",
+              display: "inline-block",
+            }}
+          />
           <button
             onClick={() => {
               setLiveEnabled((v) => !v);

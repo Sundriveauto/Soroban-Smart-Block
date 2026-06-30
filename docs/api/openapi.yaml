@@ -15,24 +15,66 @@ security:
 paths:
   /health:
     get:
-      summary: Health check endpoint
-      description: Returns the health status of the API and database connection.
+      summary: Comprehensive health check endpoint
+      description: |
+        Returns detailed health status of the API and all dependencies including
+        database, cache, indexer sync status, and background workers.
+        
+        Status codes:
+        - 200: Service is healthy or degraded (can handle traffic)
+        - 503: Service is unhealthy (critical dependencies failed)
+        
+        Health levels:
+        - healthy: All dependencies operational
+        - degraded: Critical dependencies healthy, optional dependencies may be impaired
+        - unhealthy: Critical dependencies (database or indexer) failed
       responses:
         "200":
-          description: Service is healthy
+          description: Service is healthy or degraded
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
-        "500":
-          description: Internal server error
+        "503":
+          description: Service is unhealthy (critical dependencies failed)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "503":
-          description: Database connection failed
+                $ref: "#/components/schemas/HealthStatus"
+
+  /health/live:
+    get:
+      summary: Liveness probe
+      description: |
+        Kubernetes-style liveness check. Returns 200 if the service is running
+        and should not be restarted. This endpoint does not check dependencies.
+      responses:
+        "200":
+          description: Service is alive
           content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LivenessStatus"
+
+  /health/ready:
+    get:
+      summary: Readiness probe
+      description: |
+        Kubernetes-style readiness check. Returns 200 if the service can handle
+        traffic (dependencies are healthy). Returns 503 if dependencies are down.
+      responses:
+        "200":
+          description: Service is ready to handle traffic
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessStatus"
+        "503":
+          description: Service is not ready (dependencies unhealthy)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessStatus"
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
@@ -320,13 +362,17 @@ paths:
           description: Wallet address
       responses:
         "200":
-          description: Array of events matching the wallet address
+          description: Events matching the wallet address (empty array if none)
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/DecodedEvent"
+                type: object
+                required: [events]
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DecodedEvent"
         "400":
           description: Invalid wallet address format
           content:
@@ -409,11 +455,160 @@ components:
   schemas:
     HealthStatus:
       type: object
+      required: [status, timestamp, dependencies]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of health check
+          example: "2024-01-15T10:30:00.000Z"
+        dependencies:
+          type: object
+          required: [database, cache, indexer, workers]
+          properties:
+            database:
+              $ref: "#/components/schemas/DatabaseHealth"
+            cache:
+              $ref: "#/components/schemas/CacheHealth"
+            indexer:
+              $ref: "#/components/schemas/IndexerHealth"
+            workers:
+              $ref: "#/components/schemas/WorkerHealth"
+
+    DatabaseHealth:
+      type: object
       required: [status]
       properties:
         status:
           type: string
-          example: "ok"
+          enum: [healthy, unhealthy]
+          example: "healthy"
+        responseTime:
+          type: number
+          description: Query response time in milliseconds
+          example: 5
+        connections:
+          type: object
+          properties:
+            total:
+              type: number
+              example: 10
+            idle:
+              type: number
+              example: 8
+            active:
+              type: number
+              example: 2
+            waiting:
+              type: number
+              example: 0
+        error:
+          type: string
+          description: Error message if unhealthy
+          example: "Connection timeout"
+
+    CacheHealth:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, disabled]
+          example: "healthy"
+        responseTime:
+          type: number
+          description: Ping response time in milliseconds
+          example: 2
+        totalConnections:
+          type: number
+          example: 42
+        opsPerSec:
+          type: number
+          example: 150
+        error:
+          type: string
+          description: Error message if unhealthy
+        message:
+          type: string
+          description: Info message if disabled
+          example: "Redis not configured"
+
+    IndexerHealth:
+      type: object
+      required: [status, lastLedger, lagSeconds, lastSyncAgo]
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          example: "healthy"
+        lastLedger:
+          type: number
+          description: Most recent indexed ledger number
+          example: 1234567
+        lagSeconds:
+          type: number
+          description: Approximate seconds behind network
+          example: 5
+        lastSyncAgo:
+          type: number
+          description: Seconds since last sync operation
+          example: 3
+
+    WorkerHealth:
+      type: object
+      required: [status, errors, lastRunAgo]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded]
+          example: "healthy"
+        errors:
+          type: number
+          description: Recent error count
+          example: 0
+        lastRunAgo:
+          type: number
+          description: Seconds since last worker execution
+          example: 120
+
+    LivenessStatus:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [alive]
+          example: "alive"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    ReadinessStatus:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+          example: "ready"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        reason:
+          type: string
+          nullable: true
+          description: Reason for not being ready
+          example: "Critical dependencies unhealthy"
+        dependencies:
+          type: object
+          description: Dependency health details (same as HealthStatus.dependencies)
 
     ErrorResponse:
       type: object

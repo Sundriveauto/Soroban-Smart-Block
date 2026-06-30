@@ -1,172 +1,88 @@
-# Soroban Smart Block Explorer — Docker Compose
-# Profiles:  dev (default)   — hot-reload, debug tooling
-#            prod            — production-grade, multi-arch images
-#            test            — ephemeral CI stack
-#            staging         — pre-production mirror
-#
-# Usage:
-#   docker compose up                   # dev profile (default)
-#   docker compose --profile prod up    # production
-#   docker compose --profile test up    # CI / integration tests
-#   docker compose --profile staging up # staging environment
-
-x-logging: &default-logging
-  driver: "json-file"
-  options:
-    max-size: "10m"
-    max-file: "3"
-
-x-healthcheck: &pg-healthcheck
-  test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-soroban} -d ${POSTGRES_DB:-soroban_explorer}"]
-  interval: 10s
-  timeout: 5s
-  retries: 5
-  start_period: 30s
-
 services:
-  # ── PostgreSQL ────────────────────────────────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: soroban-postgres
-    restart: unless-stopped
-    profiles: ["dev", "test", "staging", "prod"]
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-soroban}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-soroban_secret}
-      POSTGRES_DB: ${POSTGRES_DB:-soroban_explorer}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    healthcheck: *pg-healthcheck
-    logging: *default-logging
-    networks:
-      - soroban-net
-
-  # ── Redis (L2 distributed cache) ─────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: soroban-redis
-    restart: unless-stopped
-    profiles: ["dev", "test", "staging", "prod"]
-    # RDB snapshots every 5 min (if ≥1 key changed) + AOF for crash recovery
-    command: >
-      redis-server
-      --appendonly yes
-      --appendfsync everysec
-      --save 300 1
-      --save 60 1000
-      --maxmemory ${REDIS_MAXMEM:-256mb}
-      --maxmemory-policy allkeys-lru
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redisdata:/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=soroban_explorer
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    logging: *default-logging
-    networks:
-      - soroban-net
+      test: ["CMD-SHELL", "pg_isready -U postgres -d soroban_explorer"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  # ── Indexer ───────────────────────────────────────────────────────────────
+  stellar-quickstart:
+    image: stellar/quickstart:testing
+    container_name: soroban-quickstart
+    ports:
+      - "8000:8000"
+    command: --standalone --enable-soroban-rpc
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   indexer:
-    container_name: soroban-indexer
-    restart: unless-stopped
-    profiles: ["dev", "test", "staging", "prod"]
     build:
       context: ./indexer
-      dockerfile: ${INDEXER_DOCKERFILE:-Dockerfile}
-    env_file:
-      - path: .env
-        required: true
+      dockerfile: Dockerfile.dev
+    container_name: soroban-indexer
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./indexer/src:/app/src
     environment:
-      DATABASE_URL: ${INDEXER_DATABASE_URL:-postgres://${POSTGRES_USER:-soroban}:${POSTGRES_PASSWORD:-soroban_secret}@postgres:5432/${POSTGRES_DB:-soroban_explorer}}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      PORT: ${INDEXER_PORT:-3001}
-      NODE_ENV: ${NODE_ENV:-development}
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/soroban_explorer
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://localhost:3001/api/setup/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${INDEXER_PORT:-3001}/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
-    logging: *default-logging
-    networks:
-      - soroban-net
 
-  # ── Frontend ──────────────────────────────────────────────────────────────
   frontend:
-    container_name: soroban-frontend
-    restart: unless-stopped
-    profiles: ["dev", "test", "staging", "prod"]
     build:
       context: ./frontend
-      dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
-    env_file:
-      - path: .env
-        required: false
+      dockerfile: Dockerfile.dev
+    container_name: soroban-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://indexer:3001}
-      NODE_ENV: ${NODE_ENV:-development}
+      - VITE_API_URL=http://localhost:3001
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://localhost:5173 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       indexer:
-        condition: service_started
-    ports:
-      - "${FRONTEND_PORT:-80}:${FRONTEND_CONTAINER_PORT:-80}"
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${FRONTEND_CONTAINER_PORT:-80}/ || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    logging: *default-logging
-    networks:
-      - soroban-net
+        condition: service_healthy
 
-  # ── Dev-only Tools ────────────────────────────────────────────────────────
-  adminer:
-    image: adminer:latest
-    container_name: soroban-adminer
-    profiles: ["dev"]
-    restart: unless-stopped
-    ports:
-      - "${ADMINER_PORT:-8080}:8080"
-    depends_on:
-      - postgres
-    networks:
-      - soroban-net
-
-  pghero:
-    image: ankane/pghero:latest
-    container_name: soroban-pghero
-    profiles: ["dev"]
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: ${INDEXER_DATABASE_URL:-postgres://${POSTGRES_USER:-soroban}:${POSTGRES_PASSWORD:-soroban_secret}@postgres:5432/${POSTGRES_DB:-soroban_explorer}}
-    ports:
-      - "${PGHERO_PORT:-8081}:8080"
+  seed:
+    image: node:18-alpine
+    container_name: soroban-seed
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: sh -c "apk add make && make migrate && make deploy-contract && make register-abi"
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - soroban-net
-
-networks:
-  soroban-net:
-    driver: bridge
+      stellar-quickstart:
+        condition: service_healthy
+      indexer:
+        condition: service_started
 
 volumes:
   pgdata:
-  redisdata:
