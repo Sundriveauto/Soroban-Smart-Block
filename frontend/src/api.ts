@@ -31,7 +31,7 @@ export interface FeeBumpInfo {
   actual_caller: string | null;
 }
 
-Factory deployment tracking
+// Factory deployment tracking
 export interface FactoryDeploymentContract {
   contractId: string;
   wasmHash: string | null;
@@ -44,7 +44,7 @@ export interface FactoryDeploymentTree {
   contracts: FactoryDeploymentContract[];
 }
 
-CAP-0080 ZK host function types
+// CAP-0080 ZK host function types
 export interface ZkHostCall {
   fn_name: string;
   curve: "BN254" | "BLS12-381";
@@ -76,19 +76,19 @@ export interface DecodedEvent {
   description: string;
   raw_topics: string[];
   tx_hash?: string;
-  Soroban resource gas costs
+  // Soroban resource gas costs
   cpu_instructions?: number;
   mem_bytes?: number;
   fee_charged?: number;
-  state-bloat risk
+  // state-bloat risk
   is_high_bloat_risk?: boolean;
-  upgrade lineage
+  // upgrade lineage
   upgrade_info?: { type: "upgrade"; oldHash: string; newHash: string };
-  storage tier breakdown
+  // storage tier breakdown
   storage_tiers?: StorageTiers;
-  clawback compliance flag
+  // clawback compliance flag
   is_clawback?: boolean;
-  AMM swap path hops ["10 USDC", "9.1 EURC", "5.2 XLM"]
+  // AMM swap path hops ["10 USDC", "9.1 EURC", "5.2 XLM"]
   swap_path?: string[];
   // Protocol 26: TTL extension host function data
   ttl_extension?: {
@@ -97,9 +97,9 @@ export interface DecodedEvent {
     min_extension: number | null;
     max_extension: number | null;
   };
-  fee-bump chain of custody
+  // fee-bump chain of custody
   fee_bump?: FeeBumpInfo | null;
-  state archival / restoration info (RestoreFootprintOp)
+  // state archival / restoration info (RestoreFootprintOp)
   archival_info?: {
     isRestoreOp: boolean;
     revivedKeys: {
@@ -113,13 +113,13 @@ export interface DecodedEvent {
     keyCount: number;
     feePaid: number | null;
   } | null;
-  CAP-0080 ZK host function telemetry (Protocol 26)
+  // CAP-0080 ZK host function telemetry (Protocol 26)
   zk_host_calls?: { calls: ZkHostCall[]; delta: ZkCostDelta | null };
   // Heuristic fallback params: present when no ABI is registered
   heuristic_params?: HeuristicParam[];
   // SAC implicit side-effect (auto-created account or trustline)
   sac_side_effect?: "account_created" | "trustline_opened";
-  Factory deployment trace
+  // Factory deployment trace
   factory_deployment?: FactoryDeploymentTree;
 }
 
@@ -200,7 +200,7 @@ export interface BurnAlert {
   flaggedAt: number;
 }
 
-paginated contract transaction response
+// paginated contract transaction response
 export interface ContractTransactionsResponse {
   data: DecodedEvent[];
   pagination: {
@@ -212,7 +212,7 @@ export interface ContractTransactionsResponse {
   };
 }
 
-contract dependency graph
+// contract dependency graph
 export interface GraphNode3D {
   id: string;
   callCount: number;
@@ -249,7 +249,7 @@ export interface PrivilegedRole {
   updated_at: string;
 }
 
-source verification signature
+// // source verification signature
 export interface SourceVerification {
   signer: string;
   signature: string;
@@ -258,7 +258,7 @@ export interface SourceVerification {
   submitted_at: string;
 }
 
-storage state diff entry
+// storage state diff entry
 export interface StateDiff {
   ledger: number;
   tx_hash: string | null;
@@ -270,7 +270,7 @@ export interface StateDiff {
   created_at: string;
 }
 
-sub-invocation record
+// sub-invocation record
 export interface SubInvocation {
   id: number;
   parent_tx_hash: string;
@@ -281,7 +281,7 @@ export interface SubInvocation {
   ledger: number;
 }
 
-transaction status
+// transaction status
 export interface TxStatusResponse {
   tx_hash: string;
   status: "pending" | "success" | "failed";
@@ -289,7 +289,7 @@ export interface TxStatusResponse {
   error?: string | null;
 }
 
-Live TTL status for contract instance and code entries
+// Live TTL status for contract instance and code entries
 export interface ContractTTL {
   contract_id: string;
   current_ledger: number;
@@ -340,6 +340,58 @@ export interface AddressGraphData {
   edges: GraphEdge[];
 }
 
+// Sub-invocation filter options for the advanced search endpoint
+export interface SubInvocationFilter {
+  contract?: string;
+  function?: string;
+  depth_min?: number;
+  depth_max?: number;
+  gas_min?: number;
+  gas_max?: number;
+  date_from?: string;
+  date_to?: string;
+  arg_query?: string;
+  has_reentrancy?: boolean;
+  tx_hash?: string;
+  ledger_min?: number;
+  ledger_max?: number;
+}
+
+// Extended sub-invocation record with gas and reentrancy metadata
+export interface SubInvocationExtended extends SubInvocation {
+  cpu_instructions?: number;
+  mem_bytes?: number;
+  fee_charged?: number;
+  has_reentrancy?: boolean;
+}
+
+// Aggregate analytics across all sub-invocations
+export interface SubInvocationAnalytics {
+  total: number;
+  avg_depth: number;
+  max_depth: number;
+  top_contracts: { contract_id: string; call_count: number }[];
+  depth_distribution: { depth: number; count: number }[];
+}
+
+// Per-transaction call-path metrics
+export interface SubInvocationCallMetrics {
+  tx_hash: string;
+  total_calls: number;
+  max_depth: number;
+  unique_contracts: number;
+  has_reentrancy: boolean;
+  total_cpu?: number;
+  total_fee?: number;
+}
+
+// Cross-transaction tree diff result
+export interface TransactionTreeDiff {
+  added: SubInvocationExtended[];
+  removed: SubInvocationExtended[];
+  changed: { a: SubInvocationExtended; b: SubInvocationExtended }[];
+}
+
 export const api = {
   events: (params: { contract?: string; fn?: string; page?: number; type?: string }) => {
     const q = new URLSearchParams();
@@ -365,19 +417,19 @@ export const api = {
   networkComparison: (id: string) => get<NetworkComparisonResult>(`/contracts/${id}/network-comparison`),
   addressGraph: (id: string) => get<AddressGraphData>(`/contracts/${id}/address-graph`),
 
-  sub-invocations for a transaction
+  // sub-invocations for a transaction
   subInvocations: (txHash: string) => get<SubInvocation[]>(`/transactions/${txHash}/sub-invocations`),
   // Events where contract appears directly OR as sub-invocation
   eventsDeep: (contractId: string, page = 1) =>
     get<DecodedEvent[]>(`/v1/contracts/${contractId}/events-deep?page=${page}`),
 
-  transaction status (polling fallback; SSE via useTxStatus hook)
+  // transaction status (polling fallback; SSE via useTxStatus hook)
   txStatus: (txHash: string) => get<TxStatusResponse>(`/transactions/${txHash}/status`),
 
-  Circuit breaker status
+  // Circuit breaker status
   circuitBreakerStatus: (id: string) => get<CircuitBreakerStatus>(`/contracts/${id}/circuit-breaker`),
 
-  RWA token metadata
+  // RWA token metadata
   rwaMetadata: (id: string) => get<RwaMetadata>(`/contracts/${id}/rwa-metadata`),
 
   downloadAbi: async (id: string) => {
@@ -394,7 +446,7 @@ export const api = {
     URL.revokeObjectURL(url);
   },
 
-  multi-sig source verification
+  // multi-sig source verification
   sourceVerifications: (id: string, wasmHash?: string) => {
     const q = wasmHash ? `?wasm_hash=${encodeURIComponent(wasmHash)}` : "";
     return get<SourceVerification[]>(`/contracts/${id}/source-verifications${q}`);
@@ -417,19 +469,19 @@ export const api = {
       return r.json();
     }),
 
-  live TTL status (instance + code expiration ledgers)
+  // live TTL status (instance + code expiration ledgers)
   contractTTL: (id: string) => get<ContractTTL>(`/contracts/${id}/ttl`),
 
-  state-diff timeline
+  // state-diff timeline
   stateDiffs: (id: string, key?: string) => {
     const q = key ? `?key=${encodeURIComponent(key)}` : "";
     return get<StateDiff[]>(`/contracts/${id}/state-diffs${q}`);
   },
 
-  global contract dependency graph
+  // global contract dependency graph
   contractGraph: (limit = 500) => get<ContractGraphData>(`/contract-graph?limit=${limit}`),
 
-  CAP-0077 quorum freeze status
+  // CAP-0077 quorum freeze status
   quorumFreeze: (id: string) =>
     get<{
       is_frozen: boolean;
@@ -445,7 +497,7 @@ export const api = {
       types: SpecType[];
     }>(`/contracts/${id}/spec-full`),
 
-  Batch Multi-Call endpoints
+  // Batch Multi-Call endpoints
   batchSimulate: (calls: BatchCall[], sourceAccount?: string) =>
     fetch(`${BASE}/batch/simulate`, {
       method: "POST",
