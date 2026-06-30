@@ -1,4 +1,4 @@
-.PHONY: build test deploy indexer frontend clean fmt fmt-check \
+.PHONY: build test deploy indexer frontend clean fmt fmt-check lint \
 	docker-up docker-down docker-build docker-logs docker-test docker-staging docker-prod \
 	e2e e2e-setup e2e-test e2e-api e2e-chaos e2e-property e2e-playwright e2e-k6 e2e-full
 
@@ -15,6 +15,9 @@ fmt:
 
 fmt-check:
 	cargo fmt --check
+
+lint:
+	cargo clippy -- -D warnings
 
 optimize:
 	stellar contract optimize \
