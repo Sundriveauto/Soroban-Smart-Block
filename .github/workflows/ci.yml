@@ -39,7 +39,7 @@ jobs:
         run: cargo fmt --check
 
       - name: clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Build (wasm32)
         run: cargo build --target wasm32-unknown-unknown --release -p soroban-explorer-contract
