@@ -209,7 +209,7 @@ const configSchema = z.object({
   // ── RPC Provider Pool ───────────────────────────────────────────────────────
   RPC_HEALTH_WINDOW: positiveInt(20),
 
-  RPC_CALL_TIMEOUT_MS: positiveInt(1000),
+  RPC_CALL_TIMEOUT_MS: positiveInt(10000),
 
   RPC_RECOVERY_INTERVAL_MS: positiveInt(15000),
 
@@ -263,7 +263,7 @@ try {
   console.error("Invalid environment variables detected. Please fix the following issues:\n");
   
   if (error instanceof z.ZodError) {
-    error.errors.forEach((err, index) => {
+    error.issues.forEach((err, index) => {
       const path = err.path.join(".");
       const envVar = path || "unknown";
       const message = err.message;

@@ -25,6 +25,22 @@ function isResourceLimitExceeded(ev) {
 }
 
 /**
+ * JSON.stringify that survives BigInt values (i128/u64 amounts from
+ * scValToNative) by serializing them as decimal strings, and strips
+ * NUL characters (\u0000) which PostgreSQL text/jsonb columns reject.
+ */
+function safeStringify(value) {
+  const json = JSON.stringify(value, (_, v) => (typeof v === "bigint" ? v.toString() : v));
+  return json ? json.replace(/\\u0000/g, "") : json;
+}
+
+/** Strip NUL characters that PostgreSQL rejects in text columns. */
+function stripNul(str) {
+  // eslint-disable-next-line no-control-regex -- intentionally strips NUL bytes
+  return String(str).replace(/\u0000/g, "");
+}
+
+/**
  * Extract resource usage costs from the Soroban RPC event's transaction metadata.
  *
  * The Soroban RPC event object may carry a `feeCharged` field directly, and
@@ -106,8 +122,8 @@ export async function decode(ev) {
         ledger: ev.ledger,
         tx_hash: ev.txHash,
         description: wrapUnwrap.description,
-        raw_topics: topics.map(String),
-        raw_data: JSON.stringify(data),
+        raw_topics: topics.map((t) => stripNul(t)),
+        raw_data: safeStringify(data),
         ...extractGasCosts(ev),
       };
     }
@@ -137,8 +153,8 @@ export async function decode(ev) {
     const tempDecoded = {
       contract_id: contractId,
       function: fnName,
-      raw_topics: topics.map(String),
-      raw_data: JSON.stringify(data),
+      raw_topics: topics.map((t) => stripNul(t)),
+      raw_data: safeStringify(data),
     };
     description = decodeRwaEvent(tempDecoded, meta);
   }
@@ -162,8 +178,8 @@ export async function decode(ev) {
     ledger: ev.ledger,
     tx_hash: ev.txHash,
     description,
-    raw_topics: topics.map(String),
-    raw_data: JSON.stringify(data),
+    raw_topics: topics.map((t) => stripNul(t)),
+    raw_data: safeStringify(data),
     ...(isSac && { sac_asset: assetCode }),
     is_clawback: fnName === "clawback",
     is_resource_limit_exceeded: isResourceLimitExceeded(ev),

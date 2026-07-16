@@ -486,7 +486,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       const cached = getTransactionStatus(txHash);
       if (cached) return res.json(cached);
 
-      const { SorobanRpc } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc } = await import("@stellar/stellar-sdk");
       const server = new SorobanRpc.Server(RPC_URL);
       const txResult = await server.getTransaction(txHash);
       const status = txResult?.status === "SUCCESS" ? "success" : txResult?.status === "FAILED" ? "failed" : "pending";
@@ -672,7 +672,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       const { contractId, fn, args = [] } = req.body;
       if (!contractId || !fn) return res.status(400).json({ error: "Missing contractId or fn" });
 
-      const { SorobanRpc, Contract, nativeToScVal } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc, Contract, nativeToScVal } = await import("@stellar/stellar-sdk");
       const rpcUrl = process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
       const server = new SorobanRpc.Server(rpcUrl);
 
@@ -771,7 +771,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       const { xdrEnvelope } = req.body;
       if (!xdrEnvelope) return res.status(400).json({ error: "Missing xdrEnvelope" });
 
-      const { SorobanRpc, xdr } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc, xdr } = await import("@stellar/stellar-sdk");
       const server = new SorobanRpc.Server(RPC_URL);
 
       const envelope = xdr.TransactionEnvelope.fromXDR(xdrEnvelope, "base64");
@@ -1058,7 +1058,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
   app.get("/api/contracts/:id/ttl", async (req, res) => {
     try {
       const contractId = req.params.id;
-      const { SorobanRpc, xdr, Address } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc, xdr, Address } = await import("@stellar/stellar-sdk");
       const server = new SorobanRpc.Server(RPC_URL);
 
       // Build ledger keys for instance and code entries
