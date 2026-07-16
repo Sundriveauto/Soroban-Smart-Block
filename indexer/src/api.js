@@ -506,6 +506,50 @@ export function createApi({ logDestination, dbOverride } = {}) {
     }
   });
 
+  // GET /api/contracts?page=&limit=  — paginated list of registered contracts
+  app.get(
+    "/api/contracts",
+    makeCache("contracts_list", (req) => {
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 25;
+      return `contracts:list:${page}:${limit}`;
+    }),
+    async (req, res) => {
+      try {
+        const page = Number(req.query.page) || 1;
+        const limit = Math.min(Number(req.query.limit) || 25, 100);
+        const result = await db.listContracts({ page, limit });
+        res.json(result);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    },
+  );
+
+  // GET /api/contracts/:id/events?page=&limit=  — events for a specific contract
+  app.get("/api/contracts/:id/events", async (req, res) => {
+    try {
+      const page = Number(req.query.page) || 1;
+      const limit = Math.min(Number(req.query.limit) || 25, 100);
+      const rows = await db.getEvents({
+        contract: req.params.id,
+        page,
+        limit,
+      });
+      const total = rows.length; // best-effort; full count would need a second query
+      res.json({
+        events: rows,
+        pagination: {
+          page,
+          limit,
+          total,
+        },
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // GET /api/contracts/:id
   app.get(
     "/api/contracts/:id",
