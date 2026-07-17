@@ -54,7 +54,8 @@ jobs:
 
       - name: Check explorer coverage threshold (80%)
         run: |
-          COVERAGE=$(grep -oP 'Lines\s+\K[\d.]+(?=%)' coverage_summary_explorer.txt || echo "0")
+          COVERAGE=$(grep '^TOTAL' coverage_summary_explorer.txt | grep -oP '[\d.]+(?=%)' | sed -n '3p')
+          COVERAGE=${COVERAGE:-0}
           echo "Explorer contract line coverage: ${COVERAGE}%"
           awk -v cov="$COVERAGE" 'BEGIN { 
             if (cov+0 < 80) { 
@@ -83,7 +84,8 @@ jobs:
       - name: Check ticket coverage threshold (85%)
         working-directory: contracts/ticket
         run: |
-          COVERAGE=$(grep -oP 'Lines\s+\K[\d.]+(?=%)' coverage_summary_ticket.txt || echo "0")
+          COVERAGE=$(grep '^TOTAL' coverage_summary_ticket.txt | grep -oP '[\d.]+(?=%)' | sed -n '3p')
+          COVERAGE=${COVERAGE:-0}
           echo "Ticket contract line coverage: ${COVERAGE}%"
           awk -v cov="$COVERAGE" 'BEGIN { 
             if (cov+0 < 85) { 
