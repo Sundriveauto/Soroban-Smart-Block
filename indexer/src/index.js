@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { SorobanRpc } from "@stellar/stellar-sdk";
+import { rpc as SorobanRpc } from "@stellar/stellar-sdk";
 import config from "./config.js";
 import { startApi } from "./api.js";
 import { db, pool } from "./db.js";
@@ -58,8 +58,21 @@ async function indexWasmUploads(txHashes, ledger) {
       if (!tx?.envelopeXdr) continue;
 
       const { xdr } = await import("@stellar/stellar-sdk");
-      const envelope = xdr.TransactionEnvelope.fromXDR(tx.envelopeXdr, "base64");
-      const ops = envelope.tx?.().operations?.() ?? envelope.v1?.().tx?.().operations?.() ?? [];
+      // SDK v12 returns envelopeXdr as a parsed xdr.TransactionEnvelope; older
+      // paths may hand us a base64 string — support both.
+      const envelope =
+        typeof tx.envelopeXdr === "string"
+          ? xdr.TransactionEnvelope.fromXDR(tx.envelopeXdr, "base64")
+          : tx.envelopeXdr;
+      // Select the correct union arm — calling the wrong accessor throws "Bad union switch"
+      const envType = envelope.switch().name;
+      const innerTx =
+        envType === "envelopeTypeTxFeeBump"
+          ? envelope.feeBump().tx().innerTx().v1().tx()
+          : envType === "envelopeTypeTxV0"
+            ? envelope.v0().tx()
+            : envelope.v1().tx();
+      const ops = innerTx.operations() ?? [];
 
       for (const op of ops) {
         const body = op.body();
@@ -242,6 +255,7 @@ async function run() {
 
   while (!shutdown) {
     try {
+      console.log(`[daemon] polling from ledger ${_cursor}`);
       const latest = await indexLedger(_cursor);
       const lagSeconds = Math.floor((Date.now() - (_cursor * 5000)) / 1000); // approximate lag
       updateIndexerStatus(_cursor, lagSeconds);

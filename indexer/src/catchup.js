@@ -12,7 +12,7 @@
  */
 
 import "dotenv/config";
-import { SorobanRpc } from "@stellar/stellar-sdk";
+import { rpc as SorobanRpc } from "@stellar/stellar-sdk";
 import { db } from "./db.js";
 import { decode } from "./decoder.js";
 import { withRetry } from "./rpcRetry.js";
