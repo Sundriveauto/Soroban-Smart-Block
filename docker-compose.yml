@@ -38,7 +38,12 @@ services:
     volumes:
       - ./indexer/src:/app/src
     environment:
-      - DATABASE_URL=postgres://soroban:soroban_secret@postgres:5432/soroban_explorer
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/soroban_explorer
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://localhost:3001/api/setup/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,8 +60,14 @@ services:
       - ./frontend/public:/app/public
     environment:
       - VITE_API_URL=http://localhost:3001
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://localhost:5173 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
-      - indexer
+      indexer:
+        condition: service_healthy
 
   seed:
     image: node:18-alpine

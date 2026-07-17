@@ -10,7 +10,7 @@ import swaggerUi from "swagger-ui-express";
 import { db } from "./db.js";
 import { analyzeSourceDependencies } from "./dependencyScanner.js";
 import { fetchTokenMetadata } from "./sep41Metadata.js";
-import { attachWebSocketServer, publishTransactionStatus, getTransactionStatus, onTransactionStatus, offTransactionStatus } from "./wsEvents.js";
+import { attachWebSocketServer, getTransactionStatus, onTransactionStatus, offTransactionStatus } from "./wsEvents.js";
 import { verifyAbi } from "./verify_abi.js";
 import { getMetrics } from "./rpcMetrics.js";
 import { getRpcNodeStatus } from "./rpcMultiNode.js";
@@ -42,16 +42,35 @@ import { registry } from "./metrics.js";
 import pg from "pg";
 import { getBurnAlerts } from "./burnDetector.js";
 import { formatAmount } from "./formatAmount.js";
+import { getHealthStatus, getLivenessStatus, getReadinessStatus } from "./health.js";
+import { randomUUID } from "crypto";
+
+function requestIdMiddleware(req, _res, next) {
+  req.id = req.headers["x-request-id"] || randomUUID();
+  next();
+}
+
+function createHttpLogger(_logDestination) {
+  return (req, res, next) => {
+    res.on("finish", () => {
+      console.log(`[api] ${req.method} ${req.url} ${res.statusCode}`);
+    });
+    next();
+  };
+}
+
+function metricsMiddleware(_req, _res, next) {
+  next();
+}
 
 const PORT = process.env.PORT || 3001;
-const VERIFY_ON_UPLOAD = process.env.VERIFY_ABI !== "false";
 const RPC_URL = process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
-const API_KEY = process.env.API_KEY;
 
 function requireApiKey(req, res, next) {
-  if (!API_KEY) return next();
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return next();
   const key = req.headers["x-api-key"];
-  if (!key || key !== API_KEY) return res.status(401).json({ error: "Unauthorized" });
+  if (!key || key !== apiKey) return res.status(401).json({ error: "Unauthorized" });
   next();
 }
 
@@ -217,8 +236,6 @@ export function createApi({ logDestination, dbOverride } = {}) {
   });
 
   // ── Health check endpoints ──────────────────────────────────────────────
-  // Import health check module
-  const { getHealthStatus, getLivenessStatus, getReadinessStatus } = await import("./health.js");
 
   // Comprehensive health check with dependency status
   app.get("/health", async (_req, res) => {
@@ -362,7 +379,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
   // Returns the ZK host function call list and cost delta for a single event.
   app.get("/api/events/:seq/zk-costs", async (req, res) => {
     try {
-      const ev = await data.getEvent(Number(req.params.seq));
+      const ev = await db.getEvent(Number(req.params.seq));
       if (!ev) return res.status(404).json({ error: "Not found" });
       if (!ev.zk_host_calls) return res.json({ calls: [], delta: null });
       const zk = typeof ev.zk_host_calls === "string" ? JSON.parse(ev.zk_host_calls) : ev.zk_host_calls;
@@ -372,7 +389,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
     }
   });
 
-  Transaction status server-sent events endpoint
+  // Transaction status server-sent events endpoint
   app.get("/api/transactions/status", async (req, res) => {
     try {
       const txHashes = parseTxHashes(req.query.txHashes);
@@ -569,7 +586,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       const { id, functions } = req.body;
 
       if (!id || !functions) {
-        return res.status(422).json({ error: "Missing id or functions" });
+        return res.status(400).json({ error: "Missing id or functions" });
       }
 
       const existing = await db.getContractMeta(id);
@@ -578,7 +595,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       }
 
       // Verify ABI against on-chain spec if enabled
-      if (VERIFY_ON_UPLOAD) {
+      if (process.env.VERIFY_ABI !== "false") {
         const verification = await verifyAbi(id, functions);
 
         if (!verification.valid) {
@@ -783,10 +800,17 @@ export function createApi({ logDestination, dbOverride } = {}) {
     }
   });
 
+  // GET /api/wallet/:address — events involving a Stellar/Soroban wallet.
+  // Returns 200 with { events: [...] } (empty array for an unknown address) and
+  // 400 when the address is not a well-formed Stellar public key (G... base32).
   app.get("/api/wallet/:address", async (req, res) => {
     try {
-      const events = await data.getWalletEvents(req.params.address);
-      res.json(events);
+      const address = req.params.address;
+      if (!/^G[A-Z2-7]{55}$/.test(address)) {
+        return res.status(400).json({ error: "Invalid wallet address format" });
+      }
+      const events = await db.getWalletEvents(address);
+      res.json({ events });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -1155,6 +1179,13 @@ export function createApi({ logDestination, dbOverride } = {}) {
     }
   });
 
+  // POST /api/setup/db-init — create/upgrade the schema only.
+  //
+  // INTENTIONALLY MINIMAL (issue #417): this handler must call db.init() and
+  // nothing else. It does NOT seed sample data. The old seed-lib.js helper
+  // (which generated fake Stellar addresses) was removed during cleanup and must
+  // never be re-introduced here — no static import, no `await import("./seed-lib.js")`.
+  // The schema-init test in test/api/setup-db-init.test.js guards this invariant.
   app.post("/api/setup/db-init", blockInProduction, async (req, res) => {
     try {
       await db.init();
@@ -1282,6 +1313,52 @@ export function createApi({ logDestination, dbOverride } = {}) {
 
   // ── Batch Multi-Call Endpoints ───────────────────────────────────────
 
+  // POST /api/batch — dispatch a list of HTTP sub-requests against this API and
+  // return their results in the SAME order they were submitted. A sub-request
+  // that fails (e.g. 404) is captured as its own result entry and does NOT
+  // abort the sibling sub-requests.
+  //
+  // Body: { requests: [{ method?, path, body? }, ...] } (or a bare array).
+  // Response: [{ status, body }, ...] — one entry per submitted request, in order.
+  app.post("/api/batch", async (req, res) => {
+    try {
+      const items = Array.isArray(req.body) ? req.body : req.body?.requests;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "requests must be an array" });
+      }
+
+      const base = `http://${req.headers.host}`;
+      const apiKey = req.headers["x-api-key"];
+
+      // Promise.all preserves array order; each sub-request resolves to its own
+      // { status, body } so an individual failure never rejects the batch.
+      const results = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const method = String(item?.method || "GET").toUpperCase();
+            const subPath = item?.path || item?.url || "/";
+            const init = { method, headers: {} };
+            if (apiKey) init.headers["x-api-key"] = apiKey;
+            if (item?.body !== undefined && method !== "GET" && method !== "HEAD") {
+              init.headers["content-type"] = "application/json";
+              init.body = JSON.stringify(item.body);
+            }
+            const r = await fetch(base + subPath, init);
+            const contentType = r.headers.get("content-type") || "";
+            const body = contentType.includes("application/json") ? await r.json() : await r.text();
+            return { status: r.status, body };
+          } catch (e) {
+            return { status: 500, body: { error: e.message } };
+          }
+        }),
+      );
+
+      res.json(results);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // POST /api/batch/simulate — simulate full batch with per-call results
   app.post("/api/batch/simulate", async (req, res) => {
     try {
@@ -1380,3 +1457,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
   server.listen(PORT, () => console.log(`API listening on :${PORT}`));
   return server;
 }
+
+// `startApi` is the name used by src/index.js and the test suite; `createApi`
+// is kept for callers that pass { logDestination, dbOverride }. They are aliases.
+export { createApi as startApi };
