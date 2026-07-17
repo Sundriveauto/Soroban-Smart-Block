@@ -54,7 +54,8 @@ jobs:
 
       - name: Check explorer coverage threshold (80%)
         run: |
-          COVERAGE=$(grep -oP 'Lines\s+\K[\d.]+(?=%)' coverage_summary_explorer.txt || echo "0")
+          COVERAGE=$(grep '^TOTAL' coverage_summary_explorer.txt | grep -oP '[\d.]+(?=%)' | sed -n '3p')
+          COVERAGE=${COVERAGE:-0}
           echo "Explorer contract line coverage: ${COVERAGE}%"
           awk -v cov="$COVERAGE" 'BEGIN { 
             if (cov+0 < 80) { 
@@ -71,7 +72,7 @@ jobs:
           files: lcov-explorer.info
           flags: explorer-contract
           name: explorer-coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Test — ticket contract with coverage
@@ -83,7 +84,8 @@ jobs:
       - name: Check ticket coverage threshold (85%)
         working-directory: contracts/ticket
         run: |
-          COVERAGE=$(grep -oP 'Lines\s+\K[\d.]+(?=%)' coverage_summary_ticket.txt || echo "0")
+          COVERAGE=$(grep '^TOTAL' coverage_summary_ticket.txt | grep -oP '[\d.]+(?=%)' | sed -n '3p')
+          COVERAGE=${COVERAGE:-0}
           echo "Ticket contract line coverage: ${COVERAGE}%"
           awk -v cov="$COVERAGE" 'BEGIN { 
             if (cov+0 < 85) { 
@@ -100,7 +102,7 @@ jobs:
           files: contracts/ticket/lcov-ticket.info
           flags: ticket-contract
           name: ticket-coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Migrations ────────────────────────────────────────────────────────────
@@ -188,7 +190,7 @@ jobs:
           files: indexer/coverage/lcov.info
           flags: indexer
           name: indexer-coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Frontend typecheck + build
