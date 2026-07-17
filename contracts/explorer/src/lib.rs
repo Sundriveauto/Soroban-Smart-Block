@@ -58,7 +58,7 @@ pub const DEFAULT_MAX_EVENTS: u32 = 50_000;
 /// ABI-like metadata for a registered contract.
 #[allow(missing_docs)]
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ContractMeta {
     /// Schema version for forward compatibility.
     pub version: u32,
@@ -75,7 +75,7 @@ pub struct ContractMeta {
 /// Describes one callable function so the explorer can decode calls.
 #[allow(missing_docs)]
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FunctionAbi {
     pub name: Symbol,
     pub description: String,
@@ -85,7 +85,7 @@ pub struct FunctionAbi {
 /// One parameter definition.
 #[allow(missing_docs)]
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ParamDef {
     pub name: Symbol,
     pub kind: Symbol,
@@ -396,7 +396,7 @@ impl ExplorerContract {
     /// Only the admin may call this.
     pub fn submit_event(env: Env, caller: Address, input: EventInput) {
         caller.require_auth();
-        if input.function.is_empty() {
+        if input.function == Symbol::new(&env, "") {
             panic_with_error!(&env, Error::InvalidInput);
         }
         if env
@@ -579,7 +579,7 @@ mod tests {
 
         let cid: BytesN<32> = BytesN::from_array(&env, &[1u8; 32]);
         client.register_contract(&admin, &cid, &make_meta(&env, "StellarSwap", &admin));
-        let fetched = client.get_contract(&cid).unwrap();
+        let fetched = client.get_contract(&cid);
         assert_eq!(fetched.name, String::from_str(&env, "StellarSwap"));
     }
 
@@ -760,7 +760,7 @@ mod tests {
         let owner = Address::generate(&env);
         let cid: BytesN<32> = BytesN::from_array(&env, &[25u8; 32]);
         let meta_v0 = make_meta(&env, "MyContract", &owner);
-        client.register_contract(&owner, &cid, &meta_v0);
+        client.register_contract(&admin, &cid, &meta_v0);
 
         let meta_v1 = ContractMeta {
             version: 2,
@@ -769,7 +769,7 @@ mod tests {
         };
         client.update_contract(&owner, &cid, &meta_v1);
 
-        let updated = client.get_contract(&cid).unwrap();
+        let updated = client.get_contract(&cid);
         assert_eq!(updated.version, 2);
         assert_eq!(updated.abi_version, 1);
     }
@@ -829,7 +829,7 @@ mod tests {
         };
         client.register_contract(&admin, &cid, &meta);
 
-        let fetched = client.get_contract(&cid).unwrap();
+        let fetched = client.get_contract(&cid);
         assert_eq!(fetched.abi_version, 0);
 
         let v0 = client.get_contract_version(&cid, &0u32).unwrap();
@@ -852,14 +852,14 @@ mod tests {
             ..meta_v0.clone()
         };
         client.update_contract(&admin, &cid, &meta_v1);
-        assert_eq!(client.get_contract(&cid).unwrap().abi_version, 1);
+        assert_eq!(client.get_contract(&cid).abi_version, 1);
 
         let meta_v2 = ContractMeta {
             abi_version: 2,
             ..meta_v0
         };
         client.update_contract(&admin, &cid, &meta_v2);
-        assert_eq!(client.get_contract(&cid).unwrap().abi_version, 2);
+        assert_eq!(client.get_contract(&cid).abi_version, 2);
 
         assert!(client.get_contract_version(&cid, &0u32).is_some());
         assert!(client.get_contract_version(&cid, &1u32).is_some());
@@ -926,10 +926,10 @@ mod tests {
 
         let cid: BytesN<32> = BytesN::from_array(&env, &[40u8; 32]);
         client.register_contract(&admin, &cid, &make_meta(&env, "ToRemove", &admin));
-        assert!(client.get_contract(&cid).is_some());
+        assert!(client.try_get_contract(&cid).is_ok());
 
         client.deregister_contract(&admin, &cid);
-        assert!(client.get_contract(&cid).is_none());
+        assert!(client.try_get_contract(&cid).is_err());
     }
 
     #[test]
@@ -942,7 +942,7 @@ mod tests {
         let cid: BytesN<32> = BytesN::from_array(&env, &[41u8; 32]);
         client.register_contract(&admin, &cid, &make_meta(&env, "RegOwned", &registrant));
         client.deregister_contract(&registrant, &cid);
-        assert!(client.get_contract(&cid).is_none());
+        assert!(client.try_get_contract(&cid).is_err());
     }
 
     #[test]

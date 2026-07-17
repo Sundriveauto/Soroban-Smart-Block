@@ -138,7 +138,7 @@ fn test_admin_can_update_any() {
         },
     }]);
     client.update_contract(&admin, &cid, &meta2);
-    assert_eq!(client.get_contract(&cid).unwrap().version, 2u32);
+    assert_eq!(client.get_contract(&cid).version, 2u32);
 }
 
 // 4. Registrant can update their own contract
@@ -175,7 +175,7 @@ fn test_registrant_can_update_own() {
         },
     }]);
     client.update_contract(&registrant, &cid, &meta2);
-    assert_eq!(client.get_contract(&cid).unwrap().version, 2u32);
+    assert_eq!(client.get_contract(&cid).version, 2u32);
 }
 
 // 5. submit_event called by non-admin → Unauthorized
