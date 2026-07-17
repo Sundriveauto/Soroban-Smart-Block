@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { SorobanRpc } from "@stellar/stellar-sdk";
+import { rpc as SorobanRpc } from "@stellar/stellar-sdk";
 import config from "./config.js";
 import { startApi } from "./api.js";
 import { db, pool } from "./db.js";
@@ -30,6 +30,10 @@ import { eventsIngested, decodeLatency, rpcErrors, updateDbPoolMetrics } from ".
 import { startUsageFlushCron, startRetentionCleanupCron } from "./usage/usageTracker.js";
 import { startAuditPartitionCron } from "./audit/auditLogger.js";
 import { updateIndexerStatus, updateWorkerStatus } from "./health.js";
+import { logger } from "./logger.js";
+import * as alertManager from "./alertManager.js";
+import { initDeadLetterQueue, processRetries as dlqProcessRetries } from "./deadLetterQueue.js";
+import { recordLedger as gapRecordLedger } from "./predictiveGapDetector.js";
 
 const RPC_URL = config.SOROBAN_RPC_URL;
 const START_LEDGER = config.START_LEDGER;
@@ -58,8 +62,21 @@ async function indexWasmUploads(txHashes, ledger) {
       if (!tx?.envelopeXdr) continue;
 
       const { xdr } = await import("@stellar/stellar-sdk");
-      const envelope = xdr.TransactionEnvelope.fromXDR(tx.envelopeXdr, "base64");
-      const ops = envelope.tx?.().operations?.() ?? envelope.v1?.().tx?.().operations?.() ?? [];
+      // SDK v12 returns envelopeXdr as a parsed xdr.TransactionEnvelope; older
+      // paths may hand us a base64 string — support both.
+      const envelope =
+        typeof tx.envelopeXdr === "string"
+          ? xdr.TransactionEnvelope.fromXDR(tx.envelopeXdr, "base64")
+          : tx.envelopeXdr;
+      // Select the correct union arm — calling the wrong accessor throws "Bad union switch"
+      const envType = envelope.switch().name;
+      const innerTx =
+        envType === "envelopeTypeTxFeeBump"
+          ? envelope.feeBump().tx().innerTx().v1().tx()
+          : envType === "envelopeTypeTxV0"
+            ? envelope.v0().tx()
+            : envelope.v1().tx();
+      const ops = innerTx.operations() ?? [];
 
       for (const op of ops) {
         const body = op.body();
@@ -212,10 +229,11 @@ let shutdown = false;
 
 async function run() {
   await db.init();
+  await initDeadLetterQueue();
   const server = startApi();
   // Poll DB pool stats every 15 s for Prometheus gauges
   setInterval(() => updateDbPoolMetrics(pool), 15_000);
-  warmCache().catch((e) => console.warn("[daemon] cache warm failed:", e.message));
+  warmCache().catch((e) => logger.warn({ err: e.message }, "cache warm failed"));
   startAbiSync();
   startBurnDetector();
   startMetricsCollector(); // RPC latency probes
@@ -229,8 +247,13 @@ async function run() {
 
   // Bootstrap vault indexer: initial ratio snapshot for all registered vaults
   refreshAllVaults().catch(() => {});
-  // Periodic ratio refresh every 60s for vaults that accrue without emitting events
-  setInterval(() => refreshAllVaults().catch(() => {}), 60_000);
+  // Periodic ratio refresh + alert health checks every 60 s
+  setInterval(() => {
+    refreshAllVaults().catch(() => {});
+    alertManager.checkIndexerDown().catch(() => {});
+    alertManager.checkResourceConstraints().catch(() => {});
+    dlqProcessRetries(async () => {}).catch(() => {}); // retry transient failures
+  }, 60_000);
 
   // resume from the highest indexed ledger so no events are missed
   // after a restart. Fall back to START_LEDGER or (latest - 100) for first run.
@@ -238,34 +261,38 @@ async function run() {
   _cursor =
     dbMax > 0 ? dbMax + 1 : START_LEDGER || (await withRetry(() => multiNodeRpc.getLatestLedger())).sequence - 100;
 
-  console.log(`[daemon] starting from ledger ${_cursor}`);
+  logger.info({ ledger: _cursor }, "daemon starting");
 
   while (!shutdown) {
     try {
+      console.log(`[daemon] polling from ledger ${_cursor}`);
       const latest = await indexLedger(_cursor);
+      alertManager.recordPoll();
+      gapRecordLedger(_cursor);
       const lagSeconds = Math.floor((Date.now() - (_cursor * 5000)) / 1000); // approximate lag
       updateIndexerStatus(_cursor, lagSeconds);
       _cursor = latest + 1;
       await db.saveCursor(_cursor);
     } catch (err) {
-      console.error("[daemon] indexer error:", err.message);
+      logger.error({ err: err.message, ledger: _cursor }, "indexer error");
       rpcErrors.inc({ type: err.code ?? "unknown" });
+      await alertManager.checkRpcHealth(false);
     }
     if (!shutdown) await new Promise((r) => setTimeout(r, POLL_MS));
   }
 
-  console.log("[daemon] shutting down");
+  logger.info("daemon shutting down");
   server?.close();
   process.exit(0);
 }
 
 process.on("SIGTERM", () => {
   shutdown = true;
-  console.log("[daemon] SIGTERM received");
+  logger.info("SIGTERM received");
 });
 process.on("SIGINT", () => {
   shutdown = true;
-  console.log("[daemon] SIGINT received");
+  logger.info("SIGINT received");
 });
 
 run();

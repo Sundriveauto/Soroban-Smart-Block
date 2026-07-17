@@ -40,7 +40,7 @@ export default function NetworkComparison({ contractId }: { contractId: string }
     <div className="card">
       <h3 style={{ marginBottom: 12, fontSize: 14 }}>Network Deployment Status</h3>
 
-      {data.hasVersionMismatch && (
+      {data?.hasVersionMismatch && (
         <div
           style={{
             background: "rgba(239,68,68,0.1)",

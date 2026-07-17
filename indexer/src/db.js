@@ -370,6 +370,28 @@ export const db = {
     ].slice(0, limitN);
   },
 
+  async listContracts({ page = 1, limit = 25 } = {}) {
+    const offset = (page - 1) * limit;
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      pool.query(
+        `SELECT id, name, description, registered_by, has_circuit_breaker, is_paused, is_rwa, rwa_type, created_at
+         FROM contracts ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      ),
+      pool.query("SELECT COUNT(*)::INT AS total FROM contracts"),
+    ]);
+    const total = countRows[0].total;
+    return {
+      contracts: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  },
+
   async getContractMeta(id) {
     const sql = "SELECT * FROM contracts WHERE id = $1";
     const { rows } = await pool.query(sql, [id]);

@@ -363,6 +363,7 @@ export interface SubInvocationExtended extends SubInvocation {
   mem_bytes?: number;
   fee_charged?: number;
   has_reentrancy?: boolean;
+  contract_type?: string;
 }
 
 // Aggregate analytics across all sub-invocations

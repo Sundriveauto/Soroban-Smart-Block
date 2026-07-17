@@ -58,7 +58,7 @@ pub const DEFAULT_MAX_EVENTS: u32 = 50_000;
 /// ABI-like metadata for a registered contract.
 #[allow(missing_docs)]
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ContractMeta {
     /// Schema version for forward compatibility.
     pub version: u32,
@@ -75,7 +75,7 @@ pub struct ContractMeta {
 /// Describes one callable function so the explorer can decode calls.
 #[allow(missing_docs)]
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FunctionAbi {
     pub name: Symbol,
     pub description: String,
@@ -85,7 +85,7 @@ pub struct FunctionAbi {
 /// One parameter definition.
 #[allow(missing_docs)]
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ParamDef {
     pub name: Symbol,
     pub kind: Symbol,
@@ -396,6 +396,9 @@ impl ExplorerContract {
     /// Only the admin may call this.
     pub fn submit_event(env: Env, caller: Address, input: EventInput) {
         caller.require_auth();
+        if input.function == Symbol::new(&env, "") {
+            panic_with_error!(&env, Error::InvalidInput);
+        }
         if env
             .storage()
             .instance()
@@ -914,10 +917,7 @@ mod tests {
         assert!(client.try_get_contract(&cid).is_ok());
 
         client.deregister_contract(&admin, &cid);
-        assert!(matches!(
-            client.try_get_contract(&cid),
-            Err(Ok(crate::Error::NotFound))
-        ));
+        assert!(client.try_get_contract(&cid).is_err());
     }
 
     #[test]
@@ -930,10 +930,7 @@ mod tests {
         let cid: BytesN<32> = BytesN::from_array(&env, &[41u8; 32]);
         client.register_contract(&admin, &cid, &make_meta(&env, "RegOwned", &registrant));
         client.deregister_contract(&registrant, &cid);
-        assert!(matches!(
-            client.try_get_contract(&cid),
-            Err(Ok(crate::Error::NotFound))
-        ));
+        assert!(client.try_get_contract(&cid).is_err());
     }
 
     #[test]

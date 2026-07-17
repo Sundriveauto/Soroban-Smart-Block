@@ -486,7 +486,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       const cached = getTransactionStatus(txHash);
       if (cached) return res.json(cached);
 
-      const { SorobanRpc } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc } = await import("@stellar/stellar-sdk");
       const server = new SorobanRpc.Server(RPC_URL);
       const txResult = await server.getTransaction(txHash);
       const status = txResult?.status === "SUCCESS" ? "success" : txResult?.status === "FAILED" ? "failed" : "pending";
@@ -502,6 +502,50 @@ export function createApi({ logDestination, dbOverride } = {}) {
       if (e?.message?.includes("404") || e?.message?.includes("not found")) {
         return res.status(404).json({ error: "Not found" });
       }
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/contracts?page=&limit=  — paginated list of registered contracts
+  app.get(
+    "/api/contracts",
+    makeCache("contracts_list", (req) => {
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 25;
+      return `contracts:list:${page}:${limit}`;
+    }),
+    async (req, res) => {
+      try {
+        const page = Number(req.query.page) || 1;
+        const limit = Math.min(Number(req.query.limit) || 25, 100);
+        const result = await db.listContracts({ page, limit });
+        res.json(result);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    },
+  );
+
+  // GET /api/contracts/:id/events?page=&limit=  — events for a specific contract
+  app.get("/api/contracts/:id/events", async (req, res) => {
+    try {
+      const page = Number(req.query.page) || 1;
+      const limit = Math.min(Number(req.query.limit) || 25, 100);
+      const rows = await db.getEvents({
+        contract: req.params.id,
+        page,
+        limit,
+      });
+      const total = rows.length; // best-effort; full count would need a second query
+      res.json({
+        events: rows,
+        pagination: {
+          page,
+          limit,
+          total,
+        },
+      });
+    } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
@@ -672,7 +716,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       const { contractId, fn, args = [] } = req.body;
       if (!contractId || !fn) return res.status(400).json({ error: "Missing contractId or fn" });
 
-      const { SorobanRpc, Contract, nativeToScVal } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc, Contract, nativeToScVal } = await import("@stellar/stellar-sdk");
       const rpcUrl = process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
       const server = new SorobanRpc.Server(rpcUrl);
 
@@ -771,7 +815,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
       const { xdrEnvelope } = req.body;
       if (!xdrEnvelope) return res.status(400).json({ error: "Missing xdrEnvelope" });
 
-      const { SorobanRpc, xdr } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc, xdr } = await import("@stellar/stellar-sdk");
       const server = new SorobanRpc.Server(RPC_URL);
 
       const envelope = xdr.TransactionEnvelope.fromXDR(xdrEnvelope, "base64");
@@ -1058,7 +1102,7 @@ export function createApi({ logDestination, dbOverride } = {}) {
   app.get("/api/contracts/:id/ttl", async (req, res) => {
     try {
       const contractId = req.params.id;
-      const { SorobanRpc, xdr, Address } = await import("@stellar/stellar-sdk");
+      const { rpc: SorobanRpc, xdr, Address } = await import("@stellar/stellar-sdk");
       const server = new SorobanRpc.Server(RPC_URL);
 
       // Build ledger keys for instance and code entries

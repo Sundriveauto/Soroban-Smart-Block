@@ -10,7 +10,7 @@
  *   const res = await multiNodeRpc.getEvents(req);
  */
 
-import { SorobanRpc } from "@stellar/stellar-sdk";
+import { rpc as SorobanRpc } from "@stellar/stellar-sdk";
 import config from "./config.js";
 
 const RPC_URLS = config.SOROBAN_RPC_URLS.length > 0 
